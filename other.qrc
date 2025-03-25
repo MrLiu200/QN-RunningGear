@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/db">
+        <file>RunningGear.db</file>
+    </qresource>
+</RCC>
