@@ -194,7 +194,7 @@ private:
     void HMIError(uint8_t error_order,QString Content = QString());
 
 public slots:
-    void PreStateChange(uint8_t id, uint8_t ch, DBData::DeviceState state);
+    void PreStateChange(uint8_t id, uint8_t ch, QString name, quint8 axis, DBData::DeviceState state);
     void OtherBoardStateChange(uint8_t id, DBData::DeviceState state);
     void SetTimerState(bool enable);
 signals:
@@ -203,14 +203,14 @@ signals:
     void SlaveOnlineStatusChange(uint8_t carnum,uint8_t status);//从机在线状态发生改变
     void Signal_SelfInspection(uint8_t pre_id);               //自检信号 ,id == 0 表示所有设备均需自检，否则为指定前置自检
     void HostGoOnline();
-    void UDPAddLog(const QString &carNumber,const QString &WagonNumber,const int &DeviceID, const int &DeviceCh, const QString &DeviceName,
+    void UDPAddLog(const QString &carNumber,const QString &WagonNumber,const int &DeviceID, const int &DeviceCh, const int &DeviceAxis, const QString &DeviceName,
                    const QString &LogType, const int &AlarmGrade, const QString &TriggerTime, const QString &LogContent = QString());
     void UDPAddLog1(const QString &carNumber, const QString &WagonNumber, const QString &LogType, const QString &TriggerTime, const QString &LogContent);
     void UDPAddEigenvalue(QString Wagon, qint8 id, qint8 ch, uint32_t speed, double AmbientTem,double PointTem,QString time,
                           QVector<float> Dimensional,QVector<float> Demodulated);
     void UDPAddBearing(QString modelname, float PitchDiameter, float RollingDiameter, int RollerNum, float ContactAngle);
     void UDPDeleteBearing(QString BearingName);
-    void UDPAddDevice(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, float ShaftDiameter,
+    void UDPAddDevice(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, int AxisPosition, float ShaftDiameter,
                       QString Bearing1Typedef, QString Bearing1_model,QString Bearing2Typedef, QString Bearing2_model, QString Bearing3Typedef,
                       QString Bearing3_model, QString Bearing4Typedef, QString Bearing4_model,QString capstanName, int capstanTeethNum,
                       QString DrivenwheelName, int DrivenwheelTeethNum, QString version, bool Enable);

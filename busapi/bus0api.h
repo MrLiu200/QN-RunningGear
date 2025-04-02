@@ -44,7 +44,11 @@ typedef struct PRE_TEM_VALUE{//温度信息结构体
 typedef struct PRE_VIBRATION_DATA{//综合巡检信息结构体
     uint8_t id;                                     //前置处理器ID
     uint8_t ch;                                     //数据所在通道
-    uint32_t speedAve;
+    QString name;                                   //测点名称
+    quint8 AxisPosition;                            //所在轴位
+    uint32_t speedAve;                              //平均转速
+    quint8 RMSAlarmGrade;                           //rms值报警状态
+    quint8 PPAlarmGrade;                            //pp值报警状态
     QDateTime TriggerTime;                          //触发时间
     double AmbientTemValue;                         //环境温度
     double PointTemValue;                           //测点温度
@@ -120,7 +124,11 @@ private:
     //更新板卡状态
     void UpdateDeviceState(uint8_t preid, uint8_t prech,bool IsFault = false);
     //检查量纲是否需要报警
-    void CheckDimensionState(quint8 id, quint8 ch, int type, float rmsvalue, float ppvalue);
+    void CheckDimensionState(quint8 id, quint8 ch, quint8 axis, int type, float rmsvalue, float ppvalue);
+    //检查RMS的报警状态，返回值：0-未报警，1：一级报警，2：二级报警
+    quint8 CheckRMSState(int type, float rmsvalue);
+    //检查PP的报警状态，返回值：0-未报警，1：一级报警，2：二级报警
+    quint8 CheckPPState(int type,float ppvalue);
 
 public:
     //设备自检命令

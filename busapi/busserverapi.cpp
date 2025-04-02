@@ -497,7 +497,9 @@ void BusServerAPI::TemInspection(PRE_TEM_VALUE *tem_value)
             info.append(QString("测点温度：%1").arg(tem_value->PointTem.at(i)));
             //存储报警信息
             int index = DBData::GetDeviceIndex(tem_value->id,i+1);
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,tem_value->id,i+1,DBData::DeviceInfo_DeviceName.at(index),
+            int axis = (index == -1? -1 : DBData::DeviceInfo_AxisPosition.at(index));
+            QString devicename = (index == -1? "---" : DBData::DeviceInfo_DeviceName.at(index));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,tem_value->id,i+1,axis,devicename,
                                   "报警信息",alarm[i],DATETIME,info);
             //更新总线设备状态
             UpdateAlarmState(tem_value->id,i+1,alarm[i]-1);
@@ -550,6 +552,7 @@ void BusServerAPI::ReturnVIBData(PRE_VIBRATION_DATA *vibration_data)
     int grade = -1;//报警等级 0-预警 1-一级报警 2-二级报警
     uint8_t temalarm = CoreHelper::ObtainTemAlarmLevel(vibration_data->AmbientTemValue,vibration_data->PointTemValue);
     int index = DBData::GetDeviceIndex(vibration_data->id,vibration_data->ch);
+
     if(temalarm != 0xFF){
         QString info;
         info.append(QString("环境温度：%1,").arg(vibration_data->AmbientTemValue));
@@ -574,10 +577,28 @@ void BusServerAPI::ReturnVIBData(PRE_VIBRATION_DATA *vibration_data)
 //        qDebug()<<QString("报警了报警了 id=%1 ch=%2 grade = %3").arg(vibration_data->id).arg(vibration_data->ch).arg(grade);
 //        CoreHelper::SetAlarmState(grade);
 //    }
+    //判断趋势是否需要报警,只有一级和二级
+    if(vibration_data->RMSAlarmGrade > 0){
+        if(grade < vibration_data->RMSAlarmGrade){
+            grade = vibration_data->RMSAlarmGrade;
+        }
+        QString info = QString("RMS值%1级报警;").arg(vibration_data->RMSAlarmGrade);
+        LogContent.append(info);
+    }
+
+    if(vibration_data->PPAlarmGrade > 0){
+        if(grade < vibration_data->PPAlarmGrade){
+            grade = vibration_data->PPAlarmGrade;
+        }
+        QString info = QString("PP值%1级报警;").arg(vibration_data->PPAlarmGrade);
+        LogContent.append(info);
+    }
+
     SetAlarmState(grade);
     if(!LogContent.isEmpty()){
-        M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,vibration_data->id,vibration_data->ch,
-                              DBData::DeviceInfo_DeviceName.at(index),"报警信息",grade,DATETIME,LogContent);
+        QString devicename = (index == -1? "---" : DBData::DeviceInfo_DeviceName.at(index));
+        M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,vibration_data->id,vibration_data->ch,vibration_data->AxisPosition,
+                              devicename,"报警信息",grade,DATETIME,LogContent);
         UpdateAlarmState(vibration_data->id,vibration_data->ch,grade);
 #ifndef DEVICE_SLAVE
         //更新TRDP报文---LMG
@@ -586,10 +607,10 @@ void BusServerAPI::ReturnVIBData(PRE_VIBRATION_DATA *vibration_data)
     //发送数据至UDP
     list.clear();
     list << APPSetting::WagonNumber << vibration_data->TriggerTime.toString("yyyy-MM-dd HH:mm:ss")
-         << QString::number(vibration_data->id)<< QString::number(vibration_data->ch)
+         << QString::number(vibration_data->id)<< QString::number(vibration_data->ch) << vibration_data->name << QString::number(vibration_data->AxisPosition)
          << QString::number(vibration_data->speedAve) << QString::number(vibration_data->AmbientTemValue)
          << QString::number(vibration_data->PointTemValue)
-         << QString::number(temalarm) << vibration_data->AlarmResult
+         << QString::number(temalarm) << vibration_data->AlarmResult << QString::number(vibration_data->RMSAlarmGrade) << QString::number(vibration_data->PPAlarmGrade)
          << vibration_data->DimensionStr << vibration_data->DemodulatedStr;
     QString udpstr = list.join(";");
 
@@ -666,14 +687,20 @@ void BusServerAPI::RebootState(uint8_t preid, bool IsAbnormal)
 
 void BusServerAPI::ReturnChannelStatus(uint8_t preid, uint8_t ch, bool IsAbnormal)
 {
+    int index = DBData::GetDeviceIndex(preid,ch);
+    if(index == -1) return;
     //如果正常则清出故障队列
-    if(!IsAbnormal){
+    if(!IsAbnormal && TaskAPI::Instance()->existErrorprelist(preid,ch)){
         TaskAPI::Instance()->clearErrorPre(preid,ch);
+
+        int axis = DBData::DeviceInfo_AxisPosition.at(index);
+        QString name = DBData::DeviceInfo_DeviceName.at(index);
         //UDP发出上线指令
         QStringList list;
         list.append(APPSetting::WagonNumber);
         list.append("前置");
-        list.append(QString("%1|%2").arg(preid).arg(ch));
+        list.append(QString("%1|%2|%3").arg(preid).arg(ch).arg(axis));
+        list.append(name);
         list.append(QString::number(DBData::DeviceState_Online));
         list.append("设备上线");
         list.append(DATETIME);

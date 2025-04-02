@@ -190,12 +190,13 @@ void Bus2API::checkData(QByteArray frameData, quint32 frameID)
                         }else if(id == PREIOBOARDID){
                             devicename = "前置IO板卡";
                         }
-                        QString content = QString("背板设备(canid：%1,name: %2) 上线").arg(frameID).arg(devicename);
+                        QString content = QString("背板设备(canid：%1) 上线").arg(frameID);
                         M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,"报警信息",DATETIME,content);
                         QStringList list;
                         list.append(APPSetting::WagonNumber);
-                        list.append("Other");
+                        list.append("OtherBoard");
                         list.append(QString("%1").arg(id));
+                        list.append(devicename);
                         list.append(QString::number(DBData::DeviceState_Online));
                         list.append(content);
                         list.append(DATETIME);
@@ -289,13 +290,14 @@ void Bus2API::checkData(QByteArray frameData, quint32 frameID)
                 //发送错误信息至UDP
                 QStringList list;
                 list.append(APPSetting::WagonNumber);
-                list.append("Other");
+                list.append("OtherBoard");
                 list.append(QString("%1").arg(PREIOBOARDID));
+                list.append("前置IO板卡");
                 list.append("2");
                 list.append(str);
                 list.append(DATETIME);
                 UDPMulticastAPI::Instance()->SendBoardStatus(list.join(";"));
-                qDebug()<<"str = " << str;
+//                qDebug()<<"str = " << str;
             }else{
                 QString str = QString("前置IO板卡电源 %1 成功")
                         .arg(APPSetting::IOPowerEnable = true? "使能" : "失能");

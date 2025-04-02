@@ -124,11 +124,15 @@ void Bus1API::checkData(QByteArray frameData, quint32 frameID)
                 }
 
                 float Sensitivity = DBData::DeviceInfo_Sensitivity.at(index);
+                int axisposition = DBData::DeviceInfo_AxisPosition.at(index);
+                QString devicename = DBData::DeviceInfo_DeviceName.at(index);
 
                 //填充结构体
                 PRE_VIBRATION_DATA vibration_data;
                 vibration_data.id = currentpreID;
                 vibration_data.ch = currentpreCH;
+                vibration_data.name = devicename;
+                vibration_data.AxisPosition = axisposition;
                 vibration_data.speedAve = (currentEndSpeed + currentStartSpeed)/2;
                 vibration_data.AmbientTemValue = findTemperatures(currentpreID,0);
                 vibration_data.PointTemValue = findTemperatures(currentpreID,currentpreCH);
@@ -232,7 +236,9 @@ void Bus1API::checkData(QByteArray frameData, quint32 frameID)
                     Devicetype = 2;
                 //初始化算法参数
                 //检查量纲是否需要报警
-                CheckDimensionState(currentpreID,currentpreCH,Devicetype,Dimension.at(5),Dimension.at(8));
+//                CheckDimensionState(currentpreID,currentpreCH,axisposition,Devicetype,Dimension.at(5),Dimension.at(8));
+                vibration_data.RMSAlarmGrade = CheckRMSState(Devicetype,Dimension.at(5));
+                vibration_data.PPAlarmGrade = CheckPPState(Devicetype,Dimension.at(8));
                 //获取轴承参数
                 QVector<float> list1 = DBData::QueryBearingParameters(DBData::DeviceInfo_bearing1_model.at(index));
                 QVector<float> list2 = DBData::QueryBearingParameters(DBData::DeviceInfo_bearing2_model.at(index));
@@ -587,58 +593,138 @@ void Bus1API::UpdateDeviceState(uint8_t preid, uint8_t prech, bool IsFault)
     }
 }
 
-void Bus1API::CheckDimensionState(quint8 id, quint8 ch, int type, float rmsvalue, float ppvalue)
+void Bus1API::CheckDimensionState(quint8 id, quint8 ch, quint8 axis, int type, float rmsvalue, float ppvalue)
 {
     if(!APPSetting::UseDimensionalAlarm) return;
     switch (type) {
     case 0://轴箱
     {
         if(rmsvalue >= APPSetting::Axlebox_Rms_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(轴箱测点)RMS值二级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(轴箱测点)RMS值二级报警:%1").arg(rmsvalue));
         }else if(rmsvalue >= APPSetting::Axlebox_Rms_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(轴箱测点)RMS值一级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(轴箱测点)RMS值一级报警:%1").arg(rmsvalue));
         }
 
         if(ppvalue >= APPSetting::Axlebox_PP_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(轴箱测点)PP值二级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(轴箱测点)PP值二级报警:%1").arg(ppvalue));
         }else if(ppvalue >= APPSetting::Axlebox_PP_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(轴箱测点)PP值一级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(轴箱测点)PP值一级报警:%1").arg(ppvalue));
         }
     }
         break;
     case 1:
     {
         if(rmsvalue >= APPSetting::Gearbox_Rms_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(齿轮箱测点)RMS值二级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(齿轮箱测点)RMS值二级报警:%1").arg(rmsvalue));
         }else if(rmsvalue >= APPSetting::Gearbox_Rms_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(齿轮箱测点)RMS值一级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(齿轮箱测点)RMS值一级报警:%1").arg(rmsvalue));
         }
 
         if(ppvalue >= APPSetting::Gearbox_PP_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(齿轮箱测点)PP值二级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(齿轮箱测点)PP值二级报警:%1").arg(ppvalue));
         }else if(ppvalue >= APPSetting::Gearbox_PP_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(齿轮箱测点)PP值一级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(齿轮箱测点)PP值一级报警:%1").arg(ppvalue));
         }
     }
         break;
     case 2:
     {
         if(rmsvalue >= APPSetting::Motor_Rms_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(电机测点)RMS值二级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(电机测点)RMS值二级报警:%1").arg(rmsvalue));
         }else if(rmsvalue >= APPSetting::Motor_Rms_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(电机测点)RMS值一级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(电机测点)RMS值一级报警:%1").arg(rmsvalue));
         }
 
         if(ppvalue >= APPSetting::Motor_PP_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(电机测点)PP值二级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(电机测点)PP值二级报警:%1").arg(ppvalue));
         }else if(ppvalue >= APPSetting::Motor_PP_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(电机测点)PP值一级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(电机测点)PP值一级报警:%1").arg(ppvalue));
         }
     }
         break;
     default:
         break;
     }
+}
+
+quint8 Bus1API::CheckRMSState(int type, float rmsvalue)
+{
+    quint8 result = 0;
+    if(!APPSetting::UseDimensionalAlarm){
+        return result;
+    }
+    switch (type){
+    case 0:
+    {
+        if(rmsvalue >= APPSetting::Axlebox_Rms_SecondaryAlarm){
+            result = 2;
+        }else if(rmsvalue >= APPSetting::Axlebox_Rms_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    case 1:
+    {
+        if(rmsvalue >= APPSetting::Gearbox_Rms_SecondaryAlarm){
+            result = 2;
+        }else if(rmsvalue >= APPSetting::Gearbox_Rms_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    case 2:
+    {
+        if(rmsvalue >= APPSetting::Motor_Rms_SecondaryAlarm){
+            result = 2;
+        }else if(rmsvalue >= APPSetting::Motor_Rms_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    default:
+        break;
+    }
+    return result;
+}
+
+quint8 Bus1API::CheckPPState(int type, float ppvalue)
+{
+    quint8 result = 0;
+    if(!APPSetting::UseDimensionalAlarm){
+        return result;
+    }
+    switch (type) {
+    case 0://轴箱
+    {
+        if(ppvalue >= APPSetting::Axlebox_PP_SecondaryAlarm){
+            result = 2;
+        }else if(ppvalue >= APPSetting::Axlebox_PP_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    case 1:
+    {
+        if(ppvalue >= APPSetting::Gearbox_PP_SecondaryAlarm){
+            result = 2;
+        }else if(ppvalue >= APPSetting::Gearbox_PP_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    case 2:
+    {
+        if(ppvalue >= APPSetting::Motor_PP_SecondaryAlarm){
+            result = 2;
+        }else if(ppvalue >= APPSetting::Motor_PP_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    default:
+        break;
+    }
+    return result;
 }
 
 void Bus1API::CommandSelfInspection(uint8_t PreID)

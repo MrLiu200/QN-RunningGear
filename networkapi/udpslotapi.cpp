@@ -39,10 +39,10 @@ void UDPSlotAPI::Init()
     connect(UDPMulticastAPI::Instance(),&UDPMulticastAPI::TestAddPRE,this,&UDPSlotAPI::UDPTestAddPRE);
 }
 
-void UDPSlotAPI::UDPAddLog(const QString &carNumber, const QString &WagonNumber, const int &DeviceID, const int &DeviceCh,
+void UDPSlotAPI::UDPAddLog(const QString &carNumber, const QString &WagonNumber, const int &DeviceID, const int &DeviceCh,const int &DeviceAxis,
                            const QString &DeviceName, const QString &LogType, const int &AlarmGrade, const QString &TriggerTime, const QString &LogContent)
 {
-    M_DataBaseAPI::addLog(carNumber,WagonNumber,DeviceID,DeviceCh,DeviceName,LogType,AlarmGrade,TriggerTime,LogContent);
+    M_DataBaseAPI::addLog(carNumber,WagonNumber,DeviceID,DeviceCh,DeviceAxis,DeviceName,LogType,AlarmGrade,TriggerTime,LogContent);
 }
 
 void UDPSlotAPI::UDPAddLog1(const QString &carNumber, const QString &WagonNumber, const QString &LogType, const QString &TriggerTime, const QString &LogContent)
@@ -67,12 +67,12 @@ void UDPSlotAPI::UDPDeleteBearing(QString BearingName)
     M_DataBaseAPI::DeleteBearingInfo(BearingName);
 }
 
-void UDPSlotAPI::UDPAddDevice(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, float ShaftDiameter,
+void UDPSlotAPI::UDPAddDevice(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, int AxisPosition, float ShaftDiameter,
                               QString Bearing1Typedef, QString Bearing1_model, QString Bearing2Typedef, QString Bearing2_model, QString Bearing3Typedef,
                               QString Bearing3_model, QString Bearing4Typedef, QString Bearing4_model, QString capstanName, int capstanTeethNum,
                               QString DrivenwheelName, int DrivenwheelTeethNum, QString version, bool Enable)
 {
-    M_DataBaseAPI::AddDeviceInfo(DeviceId,DeviceCH,DeviceName,DeviceType,DeviceSensitivity,ShaftDiameter,Bearing1Typedef,Bearing1_model,Bearing2Typedef,Bearing2_model,
+    M_DataBaseAPI::AddDeviceInfo(DeviceId,DeviceCH,DeviceName,DeviceType,DeviceSensitivity,AxisPosition,ShaftDiameter,Bearing1Typedef,Bearing1_model,Bearing2Typedef,Bearing2_model,
                                  Bearing3Typedef,Bearing3_model,Bearing4Typedef,Bearing4_model,capstanName,capstanTeethNum,DrivenwheelName,DrivenwheelTeethNum,
                                  version,Enable);
 }
@@ -175,61 +175,4 @@ void UDPSlotAPI::reboot()
 void UDPSlotAPI::UDPTestAddPRE(QString str)
 {
     M_DataBaseAPI::ClearTable(str);
-#if 0
-    // 将 QByteArray 转换为 QString
-    QString jsonString = str;
-
-    // 解析 JSON 字符串
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonString.toUtf8());
-    if (!jsonDoc.isNull()) {
-        if (jsonDoc.isArray()) {
-            QJsonArray jsonArray = jsonDoc.array();
-            qDebug()<<"json isArray";
-            if (!jsonArray.isEmpty()) {
-                M_DataBaseAPI::ClearTable("DeviceInfo"); // 仅在有数据时清空表
-            }
-
-            for (const QJsonValue &value : jsonArray) {
-                if (!value.isObject()) continue;
-                QJsonObject obj = value.toObject();
-                qDebug() << "Parsed JSON Object:";
-                int DeviceId = obj.contains("前置ID") ? obj["前置ID"].toInt() : -1;
-                int DeviceCH = obj.contains("通道号") ? obj["通道号"].toInt() : -1;
-                QString DeviceName = obj.contains("测点名称") ? obj["测点名称"].toString() : "未定义";
-                QString DeviceType = obj.contains("测点类型") ? obj["测点类型"].toString() : "轴箱";
-                float DeviceSensitivity = obj.contains("灵敏度") ? obj["灵敏度"].toDouble() : 10;
-                float ShaftDiameter = obj.contains("轴径") ? obj["轴径"].toDouble() : 22;
-                QString Bearing1Typedef = obj.contains("轴承1名称") ? obj["轴承1名称"].toString() : "未知";
-                QString Bearing1_model = obj.contains("轴承1型号") ? obj["轴承1型号"].toString() : "QNNULL";
-                QString Bearing2Typedef = obj.contains("轴承2名称") ? obj["轴承2名称"].toString() : "未知";
-                QString Bearing2_model = obj.contains("轴承2型号") ? obj["轴承2型号"].toString() : "QNNULL";
-                QString Bearing3Typedef = obj.contains("轴承3名称") ? obj["轴承3名称"].toString() : "未知";
-                QString Bearing3_model = obj.contains("轴承3型号") ? obj["轴承3型号"].toString() : "QNNULL";
-                QString Bearing4Typedef = obj.contains("轴承4名称") ? obj["轴承4名称"].toString() : "未知";
-                QString Bearing4_model = obj.contains("轴承4型号") ? obj["轴承4型号"].toString() : "QNNULL";
-                QString capstanName = obj.contains("从动轮名称") ? obj["从动轮名称"].toString() : "未知";
-                int capstanTeethNum = obj.contains("从动轮齿数") ? obj["从动轮齿数"].toInt() : 10;
-                QString DrivenwheelName = obj.contains("主动轮名称") ? obj["主动轮名称"].toString() : "未知";
-                int DrivenwheelTeethNum = obj.contains("主动轮齿数") ? obj["主动轮齿数"].toInt() : 0;
-                QString version = obj.contains("软件版本") ? obj["软件版本"].toString() : "v1.0.0";
-                bool Enable = obj.contains("是否使能") ? obj["是否使能"].toBool() : true;
-                M_DataBaseAPI::AddDeviceInfo(DeviceId,DeviceCH,DeviceName,DeviceType,DeviceSensitivity,ShaftDiameter,Bearing1Typedef,Bearing1_model,
-                                             Bearing2Typedef,Bearing2_model,Bearing3Typedef,Bearing3_model,Bearing4Typedef,Bearing4_model,capstanName,
-                                             capstanTeethNum,DrivenwheelName,DrivenwheelTeethNum,version,Enable);
-                for (QString key : obj.keys()) {
-                    qDebug() << key << ":" << obj.value(key).toString();
-                }
-            }
-        } else if (jsonDoc.isObject()) {
-            QJsonObject jsonObject = jsonDoc.object();
-            qDebug() << "Received JSON Object:";
-
-            for (QString key : jsonObject.keys()) {
-                qDebug() << key << ":" << jsonObject.value(key).toVariant();
-            }
-        }
-    } else {
-        qDebug() << "Invalid JSON received";
-    }
-#endif
 }

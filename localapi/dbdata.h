@@ -64,6 +64,7 @@ public:
     static QList<QString> DeviceInfo_DeviceName;            //名称
     static QList<QString> DeviceInfo_DeviceType;            //测点类型
     static QList<float> DeviceInfo_Sensitivity;             //测点灵敏度
+    static QList<int> DeviceInfo_AxisPosition;              //轴位
     static QList<float> DeviceInfo_ShaftDiameter;           //测点所在轴轴径
 
     static QList<QString> DeviceInfo_bearing1Name;          //轴承1名称

@@ -49,7 +49,7 @@ public slots:
     void Stop();
 signals:
     void HostOffline();
-    void PreStateChange(uint8_t id, uint8_t ch,DBData::DeviceState state);
+    void PreStateChange(uint8_t id, uint8_t ch, QString name, quint8 axis,DBData::DeviceState state);
     void OtherBoardStateChange(uint8_t id,DBData::DeviceState state);
 };
 

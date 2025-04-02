@@ -14,16 +14,16 @@ private:
     static UDPSlotAPI *self;
 
 private slots:
-    void UDPAddLog(const QString &carNumber,const QString &WagonNumber,const int &DeviceID, const int &DeviceCh, const QString &DeviceName,
+    void UDPAddLog(const QString &carNumber, const QString &WagonNumber, const int &DeviceID, const int &DeviceCh, const int &DeviceAxis, const QString &DeviceName,
                    const QString &LogType, const int &AlarmGrade, const QString &TriggerTime, const QString &LogContent = QString());
     void UDPAddLog1(const QString &carNumber, const QString &WagonNumber, const QString &LogType, const QString &TriggerTime, const QString &LogContent);
     void UDPAddEigenvalue(QString Wagon, qint8 id, qint8 ch, quint32 speed, double AmbientTem, double PointTem, QString time,
                           QVector<float> Dimensional,QVector<float> Demodulated);
     void UDPAddBearing(QString modelname, float PitchDiameter, float RollingDiameter, int RollerNum, float ContactAngle);
     void UDPDeleteBearing(QString BearingName);
-    void UDPAddDevice(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, float ShaftDiameter,
-                      QString Bearing1Typedef, QString Bearing1_model,QString Bearing2Typedef, QString Bearing2_model, QString Bearing3Typedef,
-                      QString Bearing3_model, QString Bearing4Typedef, QString Bearing4_model,QString capstanName, int capstanTeethNum,
+    void UDPAddDevice(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, int AxisPosition, float ShaftDiameter,
+                      QString Bearing1Typedef, QString Bearing1_model, QString Bearing2Typedef, QString Bearing2_model, QString Bearing3Typedef,
+                      QString Bearing3_model, QString Bearing4Typedef, QString Bearing4_model, QString capstanName, int capstanTeethNum,
                       QString DrivenwheelName, int DrivenwheelTeethNum, QString version, bool Enable);
     void UDPDeleteDevice(int DeviceId, int DeviceCH);
     void UDPAddTask(QString Action, QString TriggerTime);

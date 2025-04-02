@@ -55,7 +55,7 @@ public:
     static bool saveDeviceInfoToFile(QString filename);
 
     //添加日志文件
-    static void addLog(const QString &carNumber,const QString &WagonNumber,const int &DeviceID, const int &DeviceCh, const QString &DeviceName,
+    static void addLog(const QString &carNumber, const QString &WagonNumber, const int &DeviceID, const int &DeviceCh, const int AxisPoint, const QString &DeviceName,
                        const QString &LogType, const int &AlarmGrade, const QString &TriggerTime, const QString &LogContent = QString());
     static void addLog(const QString &carNumber, const QString &WagonNumber, const QString &LogType, const QString &TriggerTime, const QString &LogContent = QString());
 
@@ -72,9 +72,9 @@ public:
     static QString GetDimensionalCSV(QString timeStart, QString timeEnd);
 
     //新增前置处理器
-    static void AddDeviceInfo(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, float ShaftDiameter,
-                              QString Bearing1Typedef, QString Bearing1_model,QString Bearing2Typedef, QString Bearing2_model, QString Bearing3Typedef,
-                              QString Bearing3_model, QString Bearing4Typedef, QString Bearing4_model,QString capstanName, int capstanTeethNum,
+    static void AddDeviceInfo(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, int AxisPosition, float ShaftDiameter,
+                              QString Bearing1Typedef, QString Bearing1_model, QString Bearing2Typedef, QString Bearing2_model, QString Bearing3Typedef,
+                              QString Bearing3_model, QString Bearing4Typedef, QString Bearing4_model, QString capstanName, int capstanTeethNum,
                               QString DrivenwheelName, int DrivenwheelTeethNum, QString version, bool Enable);
 
     //删除前置处理器

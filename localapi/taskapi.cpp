@@ -95,11 +95,14 @@ void TaskAPI::CheckCanTask()
 
 //                M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,"报警信息",DATETIME,QString("preid = %1,ch = %2 掉线")
 //                                      .arg(list.at(1)).arg(list.at(2)));
-                M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"---","报警信息",
+                int index = DBData::GetDeviceIndex(id,ch);
+                int axis = (index == -1? -1 : DBData::DeviceInfo_AxisPosition.at(index));
+                QString devicename = (index == -1? "---" : DBData::DeviceInfo_DeviceName.at(index));
+                M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,devicename,"报警信息",
                                       -1,DATETIME,QString("preid = %1,ch = %2 掉线").arg(id).arg(ch));
                 list[3] = QString::number(DBData::DeviceState_Offline);
                 DBData::PreStatus[i] = list.join("|");
-                Q_EMIT PreStateChange(list.at(1).toInt(),list.at(2).toInt(),DBData::DeviceState_Offline);
+                Q_EMIT PreStateChange(list.at(1).toInt(),list.at(2).toInt(),devicename,axis,DBData::DeviceState_Offline);
             }
         }
     }

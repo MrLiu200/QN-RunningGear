@@ -63,7 +63,11 @@ private:
     //更新板卡状态
     void UpdateDeviceState(uint8_t preid, uint8_t prech, bool IsFault = false);
     //检查量纲是否需要报警
-    void CheckDimensionState(quint8 id, quint8 ch, int type, float rmsvalue, float ppvalue);
+    void CheckDimensionState(quint8 id, quint8 ch, quint8 axis, int type, float rmsvalue, float ppvalue);
+    //检查RMS的报警状态，返回值：0-未报警，1：一级报警，2：二级报警
+    quint8 CheckRMSState(int type, float rmsvalue);
+    //检查PP的报警状态，返回值：0-未报警，1：一级报警，2：二级报警
+    quint8 CheckPPState(int type,float ppvalue);
 
 public:
     //设备自检命令

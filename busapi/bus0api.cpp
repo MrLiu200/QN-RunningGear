@@ -84,7 +84,7 @@ void Bus0API::processReceivedFrames()
             quint32 id = frame.frameId();
             QByteArray data = frame.payload();
             if(id != CAN_Default_FrameID){
-              checkData(data,id);
+                checkData(data,id);
             }
         }
     }
@@ -109,15 +109,15 @@ void Bus0API::checkData(QByteArray frameData, quint32 frameID)
 {
     int len = frameData.size();
     if(len == 0) return;
-//        qDebug()<<"bus0 checkData:" << CoreHelper::byteArrayToHexStr(frameData);
+    //        qDebug()<<"bus0 checkData:" << CoreHelper::byteArrayToHexStr(frameData);
     if(len == 64){//帧长度为64,识别为数据流
-//        static int test = 0;
+        //        static int test = 0;
         if(frameID == currentpreID){
             VibdataArr.append(frameData);//添加至振动数据阵列
-//            qDebug()<<test++;
+            //            qDebug()<<test++;
             if(VibdataArr.size() == VIBDataLen){
-//                test = 0;
-//                qDebug()<<"bus0 checkData "  << frameID  << ": VibdataArr.size() = "<< VIBDataLen;
+                //                test = 0;
+                //                qDebug()<<"bus0 checkData "  << frameID  << ": VibdataArr.size() = "<< VIBDataLen;
                 //查找该通道灵敏度
                 int index = DBData::GetDeviceIndex(currentpreID,currentpreCH);
                 if(index == -1){
@@ -128,10 +128,14 @@ void Bus0API::checkData(QByteArray frameData, quint32 frameID)
                 }
 
                 float Sensitivity = DBData::DeviceInfo_Sensitivity.at(index);
+                int axisposition = DBData::DeviceInfo_AxisPosition.at(index);
+                QString devicename = DBData::DeviceInfo_DeviceName.at(index);
                 //填充结构体
                 PRE_VIBRATION_DATA vibration_data;
                 vibration_data.id = currentpreID;
                 vibration_data.ch = currentpreCH;
+                vibration_data.name = devicename;
+                vibration_data.AxisPosition = axisposition;
                 vibration_data.speedAve = (currentEndSpeed + currentStartSpeed)/2;
                 vibration_data.AmbientTemValue = findTemperatures(currentpreID,0);
                 vibration_data.PointTemValue = findTemperatures(currentpreID,currentpreCH);
@@ -148,20 +152,20 @@ void Bus0API::checkData(QByteArray frameData, quint32 frameID)
                 uint16_t temp;
                 for(int i=0;i<VIBDataLen/2;i+=2){
                     temp = ((quint8)(VibdataArr.at(i+1)) << 8) | (quint8)(VibdataArr.at(i));
-//                    temp = (quint8)(VibdataArr.at(i+1) << 8 | (quint8)(VibdataArr.at(i)));
+                    //                    temp = (quint8)(VibdataArr.at(i+1) << 8 | (quint8)(VibdataArr.at(i)));
                     tempdouble = (((temp*3.3*1000)/65535)-1650)/Sensitivity;//换算出电压值(double)(double)/灵敏度
                     RawData.append(tempdouble);
                 }
                 for(int i=VIBDataLen/2;i<VIBDataLen;i+=2){
                     temp = ((quint8)(VibdataArr.at(i+1)) << 8) | (quint8)(VibdataArr.at(i));
-//                    temp = (quint8)(VibdataArr.at(i+1) << 8 | (quint8)(VibdataArr.at(i)));
+                    //                    temp = (quint8)(VibdataArr.at(i+1) << 8 | (quint8)(VibdataArr.at(i)));
                     tempdouble = (((temp*3.3*1000)/65535)-1650)/Sensitivity;//换算出电压值(double)(double)/灵敏度
                     DemodulatedData.append(tempdouble);
                 }
                 //求和并找出原始数据最大值
                 Rawsum = std::accumulate(RawData.begin(), RawData.end(), 0.0);
                 Demsum = std::accumulate(DemodulatedData.begin(), DemodulatedData.end(), 0.0);
-//                double Raw_Max = *(std::max_element(RawData.begin(), RawData.end()));
+                //                double Raw_Max = *(std::max_element(RawData.begin(), RawData.end()));
 
                 //RawData 与 DemodulatedData 长度一样，这里用谁都行
                 qint32 datelen = RawData.size();
@@ -227,7 +231,7 @@ void Bus0API::checkData(QByteArray frameData, quint32 frameID)
                 Demsum = std::accumulate(DemodulatedData.begin(), DemodulatedData.end(), 0.0);
                 Rawave = Rawsum/datelen;
                 Demave = Demsum/datelen;
-//                qDebug()<<"Bus0 Demave:" << Demave;
+                //                qDebug()<<"Bus0 Demave:" << Demave;
                 //找出测点类型
                 int Devicetype = 0;
                 QString typestr = DBData::DeviceInfo_DeviceType.at(index);
@@ -237,7 +241,9 @@ void Bus0API::checkData(QByteArray frameData, quint32 frameID)
                     Devicetype = 2;
                 //初始化振动算法参数
                 //检查量纲是否需要报警
-                CheckDimensionState(currentpreID,currentpreCH,Devicetype,Dimension.at(5),Dimension.at(8));
+//                CheckDimensionState(currentpreID,currentpreCH,axisposition,Devicetype,Dimension.at(5),Dimension.at(8));
+                vibration_data.RMSAlarmGrade = CheckRMSState(Devicetype,Dimension.at(5));
+                vibration_data.PPAlarmGrade = CheckPPState(Devicetype,Dimension.at(8));
                 //获取轴承参数
                 QVector<float> list1 = DBData::QueryBearingParameters(DBData::DeviceInfo_bearing1_model.at(index));
                 QVector<float> list2 = DBData::QueryBearingParameters(DBData::DeviceInfo_bearing2_model.at(index));
@@ -258,9 +264,9 @@ void Bus0API::checkData(QByteArray frameData, quint32 frameID)
                 //运行算法
                 //参数传入由最大值改为均方根
 
-//                QStringList ret = Algorithm_v2::Algoruthm_Start(RawData,DemodulatedData,RawData.size(),
-//                                                                DemodulatedData.size(),APPSetting::VibrateSamplingFrequency,
-//                                                                Raw_Max,Rawave,Demave);
+                //                QStringList ret = Algorithm_v2::Algoruthm_Start(RawData,DemodulatedData,RawData.size(),
+                //                                                                DemodulatedData.size(),APPSetting::VibrateSamplingFrequency,
+                //                                                                Raw_Max,Rawave,Demave);
                 QStringList ret = Algorithm_v2::Algoruthm_Start(RawData,DemodulatedData,RawData.size(),
                                                                 DemodulatedData.size(),APPSetting::VibrateSamplingFrequency,
                                                                 rms,Rawave,Demave);
@@ -280,11 +286,11 @@ void Bus0API::checkData(QByteArray frameData, quint32 frameID)
                     stream << value;
                 }
 
-//                titlestr = "Demodulated:";
-//                stream << titlestr;
-//                for (float value : Demodulated) {
-//                    stream << value;
-//                }
+                //                titlestr = "Demodulated:";
+                //                stream << titlestr;
+                //                for (float value : Demodulated) {
+                //                    stream << value;
+                //                }
 
                 titlestr = "result:";
                 stream << titlestr << ret.size();
@@ -324,7 +330,7 @@ void Bus0API::checkData(QByteArray frameData, quint32 frameID)
             qDebug()<<"currentid = " << currentpreID << " frameid = " << frameID;
         }
     }else{//解析命令
-//        qDebug()<<"bus0 checkData "  << frameID  << ": "<< CoreHelper::byteArrayToHexStr(frameData);
+        //        qDebug()<<"bus0 checkData "  << frameID  << ": "<< CoreHelper::byteArrayToHexStr(frameData);
         uint8_t frame[len];
         //根据数据长度，截取正确数据包
         uint8_t temp = frameData[2];
@@ -408,7 +414,7 @@ void Bus0API::checkData(QByteArray frameData, quint32 frameID)
             case 0x05://前置空闲状态
             {
                 uint8_t state= frame[PRE_PACKET_DATA_OFFSET];
-//                qDebug()<< "0x05 命令状态为:"<<state;
+                //                qDebug()<< "0x05 命令状态为:"<<state;
                 bool IsBusy = state;
                 UpdateDeviceState(frameID,0);
                 Q_EMIT PreState(frameID,IsBusy);
@@ -544,7 +550,7 @@ void Bus0API::addTaskprelist(uint8_t preid, uint8_t channelsNumber,QVector<uint8
     TASK_CHANNEL_LIST channellist;
     channellist.Pre_id = preid;
     channellist.status = TASKSTATE::idle;
-//    channellist.working_ch = (channelsNumber > 0) ? 1 : 0;
+    //    channellist.working_ch = (channelsNumber > 0) ? 1 : 0;
     channellist.working_ch = 0;
     for(int i=1;i<channelsNumber+1;i++){
         int deviceindex = DBData::GetDeviceIndex(preid,i);
@@ -599,58 +605,138 @@ void Bus0API::UpdateDeviceState(uint8_t preid, uint8_t prech, bool IsFault)
     }
 }
 
-void Bus0API::CheckDimensionState(quint8 id, quint8 ch,int type, float rmsvalue, float ppvalue)
+void Bus0API::CheckDimensionState(quint8 id, quint8 ch, quint8 axis, int type, float rmsvalue, float ppvalue)
 {
     if(!APPSetting::UseDimensionalAlarm) return;
     switch (type) {
     case 0://轴箱
     {
         if(rmsvalue >= APPSetting::Axlebox_Rms_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(轴箱测点)RMS值二级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(轴箱测点)RMS值二级报警:%1").arg(rmsvalue));
         }else if(rmsvalue >= APPSetting::Axlebox_Rms_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(轴箱测点)RMS值一级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(轴箱测点)RMS值一级报警:%1").arg(rmsvalue));
         }
 
         if(ppvalue >= APPSetting::Axlebox_PP_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(轴箱测点)PP值二级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(轴箱测点)PP值二级报警:%1").arg(ppvalue));
         }else if(ppvalue >= APPSetting::Axlebox_PP_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(轴箱测点)PP值一级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(轴箱测点)PP值一级报警:%1").arg(ppvalue));
         }
     }
         break;
     case 1:
     {
         if(rmsvalue >= APPSetting::Gearbox_Rms_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(齿轮箱测点)RMS值二级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(齿轮箱测点)RMS值二级报警:%1").arg(rmsvalue));
         }else if(rmsvalue >= APPSetting::Gearbox_Rms_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(齿轮箱测点)RMS值一级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(齿轮箱测点)RMS值一级报警:%1").arg(rmsvalue));
         }
 
         if(ppvalue >= APPSetting::Gearbox_PP_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(齿轮箱测点)PP值二级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(齿轮箱测点)PP值二级报警:%1").arg(ppvalue));
         }else if(ppvalue >= APPSetting::Gearbox_PP_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(齿轮箱测点)PP值一级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(齿轮箱测点)PP值一级报警:%1").arg(ppvalue));
         }
     }
         break;
     case 2:
     {
         if(rmsvalue >= APPSetting::Motor_Rms_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(电机测点)RMS值二级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(电机测点)RMS值二级报警:%1").arg(rmsvalue));
         }else if(rmsvalue >= APPSetting::Motor_Rms_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(电机测点)RMS值一级报警:%1").arg(rmsvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(电机测点)RMS值一级报警:%1").arg(rmsvalue));
         }
 
         if(ppvalue >= APPSetting::Motor_PP_SecondaryAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",2,DATETIME,QString("(电机测点)PP值二级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",2,DATETIME,QString("(电机测点)PP值二级报警:%1").arg(ppvalue));
         }else if(ppvalue >= APPSetting::Motor_PP_FirstLevelAlarm){
-            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,"null","报警信息",1,DATETIME,QString("(电机测点)PP值一级报警:%1").arg(ppvalue));
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,id,ch,axis,"null","报警信息",1,DATETIME,QString("(电机测点)PP值一级报警:%1").arg(ppvalue));
         }
     }
         break;
     default:
         break;
     }
+}
+
+quint8 Bus0API::CheckRMSState(int type, float rmsvalue)
+{
+    quint8 result = 0;
+    if(!APPSetting::UseDimensionalAlarm){
+        return result;
+    }
+    switch (type){
+    case 0:
+    {
+        if(rmsvalue >= APPSetting::Axlebox_Rms_SecondaryAlarm){
+            result = 2;
+        }else if(rmsvalue >= APPSetting::Axlebox_Rms_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    case 1:
+    {
+        if(rmsvalue >= APPSetting::Gearbox_Rms_SecondaryAlarm){
+            result = 2;
+        }else if(rmsvalue >= APPSetting::Gearbox_Rms_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    case 2:
+    {
+        if(rmsvalue >= APPSetting::Motor_Rms_SecondaryAlarm){
+            result = 2;
+        }else if(rmsvalue >= APPSetting::Motor_Rms_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    default:
+        break;
+    }
+    return result;
+}
+
+quint8 Bus0API::CheckPPState(int type, float ppvalue)
+{
+    quint8 result = 0;
+    if(!APPSetting::UseDimensionalAlarm){
+        return result;
+    }
+    switch (type) {
+    case 0://轴箱
+    {
+        if(ppvalue >= APPSetting::Axlebox_PP_SecondaryAlarm){
+            result = 2;
+        }else if(ppvalue >= APPSetting::Axlebox_PP_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    case 1:
+    {
+        if(ppvalue >= APPSetting::Gearbox_PP_SecondaryAlarm){
+            result = 2;
+        }else if(ppvalue >= APPSetting::Gearbox_PP_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    case 2:
+    {
+        if(ppvalue >= APPSetting::Motor_PP_SecondaryAlarm){
+            result = 2;
+        }else if(ppvalue >= APPSetting::Motor_PP_FirstLevelAlarm){
+            result = 1;
+        }
+    }
+        break;
+    default:
+        break;
+    }
+    return result;
 }
 
 void Bus0API::CommandSelfInspection(uint8_t PreID)
@@ -785,8 +871,8 @@ void Bus0API::CommandSendFile(QString filename)
         }
         frame.setPayload(block);
         SendData(frame);
-//        QThread::usleep(800);
-                QThread::msleep(5);
+        //        QThread::usleep(800);
+        QThread::msleep(5);
 
     }while(!file.atEnd());
     file.close();

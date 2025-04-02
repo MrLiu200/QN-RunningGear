@@ -104,21 +104,21 @@ int APPSetting::RelativeTemperatureThreshold = 50;
 int APPSetting::AbsoluteTemperatureWarning = 80;
 int APPSetting::MemorySpaceRatio = 70;
 
-double APPSetting::Axlebox_Rms_FirstLevelAlarm = 0.00;
-double APPSetting::Gearbox_Rms_FirstLevelAlarm = 0.00;
-double APPSetting::Motor_Rms_FirstLevelAlarm = 0.00;
+double APPSetting::Axlebox_Rms_FirstLevelAlarm = 1000.00;
+double APPSetting::Gearbox_Rms_FirstLevelAlarm = 1000.00;
+double APPSetting::Motor_Rms_FirstLevelAlarm = 1000.00;
 
-double APPSetting::Axlebox_Rms_SecondaryAlarm = 0.00;
-double APPSetting::Gearbox_Rms_SecondaryAlarm = 0.00;
-double APPSetting::Motor_Rms_SecondaryAlarm = 0.00;
+double APPSetting::Axlebox_Rms_SecondaryAlarm = 1000.00;
+double APPSetting::Gearbox_Rms_SecondaryAlarm = 1000.00;
+double APPSetting::Motor_Rms_SecondaryAlarm = 1000.00;
 
-double APPSetting::Axlebox_PP_FirstLevelAlarm = 0.00;
-double APPSetting::Gearbox_PP_FirstLevelAlarm = 0.00;
-double APPSetting::Motor_PP_FirstLevelAlarm = 0.00;
+double APPSetting::Axlebox_PP_FirstLevelAlarm = 1000.00;
+double APPSetting::Gearbox_PP_FirstLevelAlarm = 1000.00;
+double APPSetting::Motor_PP_FirstLevelAlarm = 1000.00;
 
-double APPSetting::Axlebox_PP_SecondaryAlarm = 0.00;
-double APPSetting::Gearbox_PP_SecondaryAlarm = 0.00;
-double APPSetting::Motor_PP_SecondaryAlarm = 0.00;
+double APPSetting::Axlebox_PP_SecondaryAlarm = 1000.00;
+double APPSetting::Gearbox_PP_SecondaryAlarm = 1000.00;
+double APPSetting::Motor_PP_SecondaryAlarm = 1000.00;
 
 bool APPSetting::UseDimensionalAlarm = true;
 bool APPSetting::UseVibrateWarning = true;

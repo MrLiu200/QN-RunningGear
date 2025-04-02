@@ -169,6 +169,9 @@ void M_DataBaseAPI::LoadDeviceInfo()
     DBData::DeviceInfo_DeviceCH.clear();
     DBData::DeviceInfo_DeviceName.clear();
     DBData::DeviceInfo_DeviceType.clear();
+    DBData::DeviceInfo_Sensitivity.clear();
+    DBData::DeviceInfo_AxisPosition.clear();
+    DBData::DeviceInfo_ShaftDiameter.clear();
 
     DBData::DeviceInfo_bearing1Name.clear();
     DBData::DeviceInfo_bearing1_model.clear();
@@ -190,7 +193,7 @@ void M_DataBaseAPI::LoadDeviceInfo()
     DBData::DeviceInfo_version.clear();
 
     QSqlQuery query;
-    QString DeviceInfoStr = "select DeviceID, DeviceCH, DeviceName, DeviceType, DeviceSensitivity, ShaftDiameter, bearing1Name, bearing1_model,"
+    QString DeviceInfoStr = "select DeviceID, DeviceCH, DeviceName, DeviceType, DeviceSensitivity, AxisPosition, ShaftDiameter, bearing1Name, bearing1_model,"
                             "bearing2Name, bearing2_model, bearing3Name, bearing3_model, bearing4Name, bearing4_model,"
                             "capstanName, capstanTeethNum, DrivenwheelName, DrivenwheelTeethNum, version, IsEnable from DeviceInfo";//where IsEnable = 1
 
@@ -202,24 +205,25 @@ void M_DataBaseAPI::LoadDeviceInfo()
         DBData::DeviceInfo_DeviceName.append(query.value(2).toString());
         DBData::DeviceInfo_DeviceType.append(query.value(3).toString());
         DBData::DeviceInfo_Sensitivity.append(query.value(4).toFloat());
-        DBData::DeviceInfo_ShaftDiameter.append(query.value(5).toFloat());
+        DBData::DeviceInfo_AxisPosition.append(query.value(5).toInt());
+        DBData::DeviceInfo_ShaftDiameter.append(query.value(6).toFloat());
 
-        DBData::DeviceInfo_bearing1Name.append(query.value(6).toString());
-        DBData::DeviceInfo_bearing1_model.append(query.value(7).toString());
-        DBData::DeviceInfo_bearing2Name.append(query.value(8).toString());
-        DBData::DeviceInfo_bearing2_model.append(query.value(9).toString());
-        DBData::DeviceInfo_bearing3Name.append(query.value(10).toString());
-        DBData::DeviceInfo_bearing3_model.append(query.value(11).toString());
-        DBData::DeviceInfo_bearing4Name.append(query.value(12).toString());
-        DBData::DeviceInfo_bearing4_model.append(query.value(13).toString());
+        DBData::DeviceInfo_bearing1Name.append(query.value(7).toString());
+        DBData::DeviceInfo_bearing1_model.append(query.value(8).toString());
+        DBData::DeviceInfo_bearing2Name.append(query.value(9).toString());
+        DBData::DeviceInfo_bearing2_model.append(query.value(10).toString());
+        DBData::DeviceInfo_bearing3Name.append(query.value(11).toString());
+        DBData::DeviceInfo_bearing3_model.append(query.value(12).toString());
+        DBData::DeviceInfo_bearing4Name.append(query.value(13).toString());
+        DBData::DeviceInfo_bearing4_model.append(query.value(14).toString());
 
-        DBData::DeviceInfo_capstanName.append(query.value(14).toString());
-        DBData::DeviceInfo_capstanTeethNum.append(query.value(15).toInt());
-        DBData::DeviceInfo_DrivenwheelName.append(query.value(16).toString());
-        DBData::DeviceInfo_DrivenwheelTeethNum.append(query.value(17).toInt());
+        DBData::DeviceInfo_capstanName.append(query.value(15).toString());
+        DBData::DeviceInfo_capstanTeethNum.append(query.value(16).toInt());
+        DBData::DeviceInfo_DrivenwheelName.append(query.value(17).toString());
+        DBData::DeviceInfo_DrivenwheelTeethNum.append(query.value(18).toInt());
 
-        DBData::DeviceInfo_version.append(query.value(18).toString());
-        DBData::DeviceInfo_IsEnable.append(query.value(19).toBool());
+        DBData::DeviceInfo_version.append(query.value(19).toString());
+        DBData::DeviceInfo_IsEnable.append(query.value(20).toBool());
         DBData::DeviceInfo_Count++;
     }
 }
@@ -282,6 +286,7 @@ bool M_DataBaseAPI::saveDeviceInfoToFile(QString filename)
             << DBData::DeviceInfo_DeviceName.at(i) << ","
             << DBData::DeviceInfo_DeviceType.at(i) << ","
             << DBData::DeviceInfo_Sensitivity.at(i) << ","
+            << DBData::DeviceInfo_AxisPosition.at(i) << ","
             << DBData::DeviceInfo_ShaftDiameter.at(i) << ","
             << DBData::DeviceInfo_bearing1Name.at(i) << ","
             << DBData::DeviceInfo_bearing1_model.at(i) << ","
@@ -306,13 +311,15 @@ bool M_DataBaseAPI::saveDeviceInfoToFile(QString filename)
     return true;
 }
 
-void M_DataBaseAPI::addLog(const QString &carNumber, const QString &WagonNumber, const int &DeviceID, const int &DeviceCh, const QString &DeviceName, const QString &LogType, const int &AlarmGrade, const QString &TriggerTime, const QString &LogContent)
+void M_DataBaseAPI::addLog(const QString &carNumber, const QString &WagonNumber, const int &DeviceID, const int &DeviceCh, const int AxisPoint,
+                           const QString &DeviceName, const QString &LogType, const int &AlarmGrade, const QString &TriggerTime, const QString &LogContent)
 {
-    QString sql = "insert into LogInfo(CarNumber,WagonNumber,DeviceID,DeviceCH,DeviceName,LogType,AlarmGrade,TriggerTime,LogContent) values('";
+    QString sql = "insert into LogInfo(CarNumber,WagonNumber,DeviceID,DeviceCH,AxisPosition,DeviceName,LogType,AlarmGrade,TriggerTime,LogContent) values('";
     sql += carNumber + "','";
     sql += WagonNumber +"','";
     sql += QString::number(DeviceID) + "','";
     sql += QString::number(DeviceCh) + "','";
+    sql += QString::number(AxisPoint) + "','";
     sql += DeviceName + "','";
     sql += LogType + "','";
     sql += QString::number(AlarmGrade) + "','";
@@ -325,7 +332,7 @@ void M_DataBaseAPI::addLog(const QString &carNumber, const QString &WagonNumber,
 
 void M_DataBaseAPI::addLog(const QString &carNumber, const QString &WagonNumber, const QString &LogType, const QString &TriggerTime, const QString &LogContent)
 {
-    addLog(carNumber,WagonNumber,0,0,"000",LogType,-1,TriggerTime,LogContent);
+    addLog(carNumber,WagonNumber,0,0,-1,"000",LogType,-1,TriggerTime,LogContent);
 }
 
 void M_DataBaseAPI::AddDimensionalValue(QString Wagon, qint8 id, qint8 ch, uint32_t speed, double Ambienttem, double pointtem, QString time, QVector<float> Value)
@@ -414,12 +421,12 @@ QString M_DataBaseAPI::GetDimensionalCSV(QString timeStart, QString timeEnd)
     return ret;
 }
 
-void M_DataBaseAPI::AddDeviceInfo(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, float ShaftDiameter, QString Bearing1Typedef,
+void M_DataBaseAPI::AddDeviceInfo(int DeviceId, int DeviceCH, QString DeviceName, QString DeviceType, float DeviceSensitivity, int AxisPosition, float ShaftDiameter, QString Bearing1Typedef,
                                   QString Bearing1_model, QString Bearing2Typedef, QString Bearing2_model, QString Bearing3Typedef, QString Bearing3_model,
                                   QString Bearing4Typedef, QString Bearing4_model, QString capstanName, int capstanTeethNum, QString DrivenwheelName, int DrivenwheelTeethNum,
                                   QString version, bool Enable)
 {
-    QString AddSql = "insert into DeviceInfo(DeviceID, DeviceCH, DeviceName, DeviceType, DeviceSensitivity, ShaftDiameter, bearing1Name, bearing1_model,"
+    QString AddSql = "insert into DeviceInfo(DeviceID, DeviceCH, DeviceName, DeviceType, DeviceSensitivity, AxisPosition, ShaftDiameter, bearing1Name, bearing1_model,"
                      "bearing2Name, bearing2_model, bearing3Name, bearing3_model, bearing4Name, bearing4_model,"
                      "capstanName, capstanTeethNum, DrivenwheelName, DrivenwheelTeethNum, version, IsEnable) values('";
     AddSql += QString::number(DeviceId) + "','";
@@ -427,6 +434,7 @@ void M_DataBaseAPI::AddDeviceInfo(int DeviceId, int DeviceCH, QString DeviceName
     AddSql += DeviceName + "','";
     AddSql += DeviceType + "','";
     AddSql += QString::number(DeviceSensitivity) + "','";
+    AddSql += QString::number(AxisPosition) + "','";
     AddSql += QString::number(ShaftDiameter) + "','";
     AddSql += Bearing1Typedef + "','";
     AddSql += Bearing1_model + "','";

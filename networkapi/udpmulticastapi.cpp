@@ -424,13 +424,13 @@ void UDPMulticastAPI::ReceiveSelfInspection(QString DataContent)
     //判断前置主体状态
     if(pre_state == 1){
         //        M_DataBaseAPI::addLog(APPSetting::CarNumber,WagonNum,pre_id,0,"前置主体","自检信息",pre_state,time,"前置主体自检异常");
-        Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,0,"前置主体","自检信息",pre_state,time,"前置主体自检异常");
+        Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,0,-1,"前置主体","自检信息",pre_state,time,"前置主体自检异常");
     }
     //判断各通道状态
     for(int i=0;i<ChannelCount;i++){
         if(ChannelState[i] == 1){
             //            M_DataBaseAPI::addLog(APPSetting::CarNumber,WagonNum,pre_id,i+1,"无","自检信息",ChannelState[i],time,"该通道自检异常");
-            Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,i+1,"无","自检信息",ChannelState[i],time,"该通道自检异常");
+            Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,i+1,-1,"无","自检信息",ChannelState[i],time,"该通道自检异常");
         }
     }
 }
@@ -454,7 +454,7 @@ void UDPMulticastAPI::TemInspection(QString DataContent)
     for(int i=0;i<ChannelCount;i++){
         if(ChannelState[i] > 0){
             //            M_DataBaseAPI::addLog(APPSetting::CarNumber,WagonNum,pre_id,i+1,"无","报警信息",ChannelState[i]-1,time,"通道温度异常");
-            Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,i+1,"无","报警信息",ChannelState[i]-1,time,"通道温度异常");
+            Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,i+1,-1,"无","报警信息",ChannelState[i]-1,time,"通道温度异常");
         }
     }
 }
@@ -462,34 +462,62 @@ void UDPMulticastAPI::TemInspection(QString DataContent)
 void UDPMulticastAPI::ComprehensiveInspection(QString DataContent)
 {
     QStringList list = DataContent.split(";");
-    if(list.size() < 11) return;
+    if(list.size() < 15) return;
     QString WagonNum = list.at(0);
     QString time = list.at(1);
     uint8_t pre_id = list.at(2).toInt();
     uint8_t ChannelNum = list.at(3).toInt();
-    uint32_t Speed = list.at(4).toInt();
-    double AmbientTem = list.at(5).toDouble();
-    double pointTem = list.at(6).toDouble();
-    QStringList alarmlist = list.at(8).split("|");
-    QStringList DimensionList = list.at(9).split("|");
-    QStringList DemodulatedList = list.at(10).split("|");
+    QString devicename = list.at(4);
+    int axis = list.at(5).toInt();
+    uint32_t Speed = list.at(6).toInt();
+    double AmbientTem = list.at(7).toDouble();
+    double pointTem = list.at(8).toDouble();
+    QStringList alarmlist = list.at(10).split("|");
+    quint8 rmsAlarmgrade = list.at(11).toInt();
+    quint8 ppAlarmgrade = list.at(12).toInt();
+    QStringList DimensionList = list.at(13).split("|");
+    QStringList DemodulatedList = list.at(14).split("|");
     uint8_t state[9];
-    state[0] = list.at(7).toInt();
+    state[0] = list.at(9).toInt();
     for(int i=0;i<alarmlist.size();i++){
         state[i+1] = alarmlist.at(i).toInt();
     }
 
     //判断状态 -----LMG 未添加TRDP
+    QStringList logList;
     QStringList Contents;
+    int lastgrade = -1;
     Contents << "温度" << "保外" << "保内" << "外环" << "内环" << "滚单" << "大齿轮" << "小齿轮" << "踏面";
     for(int i=0;i<9;i++){
         if(state[i] != 0xff){//0:预警，1:一级报警 2:二级报警
-            QString name = WagonNum + "测点";
+//            QString name = WagonNum + "测点";
             //            M_DataBaseAPI::addLog(APPSetting::CarNumber,WagonNum,pre_id,ChannelNum,name,"报警信息",state[i]-1,time,Contents.at(i) + "异常");
-            Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,ChannelNum,name,"报警信息",state[i],time,Contents.at(i) + "异常");
+            QString grade = (state[i] == 0 ? "预警" : QString("%1级").arg(state[i]));
+            logList.append(Contents.at(i) + grade);
+            if(lastgrade < state[i]){
+                lastgrade = state[i];
+            }
+//            Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,ChannelNum,axis,name,"报警信息",state[i],time,Contents.at(i) + "异常");
         }
     }
 
+    if(rmsAlarmgrade > 0){
+        if(lastgrade < rmsAlarmgrade){
+            lastgrade = rmsAlarmgrade;
+        }
+        logList.append(QString("RMS值 %1 级报警").arg(rmsAlarmgrade));
+    }
+
+    if(ppAlarmgrade > 0){
+        if(lastgrade < ppAlarmgrade){
+            lastgrade = ppAlarmgrade;
+        }
+        logList.append(QString("PP值 %1 级报警").arg(ppAlarmgrade));
+    }
+
+    if(!logList.isEmpty() && (lastgrade != -1)){
+        Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,ChannelNum,axis,devicename,"报警信息",lastgrade,time,logList.join(";"));
+    }
     //存储量纲
     QVector<float> DimensionValus;
     for(const QString str : DimensionList){
@@ -590,23 +618,27 @@ void UDPMulticastAPI::SendBoardStatus(QString info)
 void UDPMulticastAPI::UpdateBoardStatus(QString DataContent)
 {
     QStringList list = DataContent.split(";");
-    if(list.size() < 6) return;
+    if(list.size() < 7) return;
     QString wagon = list.at(0);
     QString type = list.at(1);
     QString strid = list.at(2);
-    QString oldContent = list.at(3);
+    QString devicename = list.at(3);
     int state = list.at(4).toInt();
-    QString Time = list.at(5);
-    int id =0,ch =0;
+    QString oldContent = list.at(5);
+    QString Time = list.at(6);
+    int id =0,ch =0,axis = -1;
     if(type == "前置"){
+        QStringList infolist = strid.split("|");
+        if(infolist.size() < 3) return;
         id = strid.split("|").at(0).toInt();
         ch = strid.split("|").at(1).toInt();
+        axis = strid.split("|").at(2).toInt();
     }else{
         id = strid.toInt();
     }
-    QString newContent = oldContent + QString("状态: %1").arg(state);
+//    QString newContent = oldContent + QString("状态: %1").arg(state);
 
-    Q_EMIT UDPAddLog(APPSetting::CarNumber,wagon,id,ch,type,"报警信息",0,Time,newContent);
+    Q_EMIT UDPAddLog(APPSetting::CarNumber,wagon,id,ch,axis,devicename,"报警信息",0,Time,oldContent);
     //    M_DataBaseAPI::addLog(APPSetting::CarNumber,wagon,id,ch,type,"报警信息",0,Time,Content);
 }
 
@@ -792,12 +824,13 @@ void UDPMulticastAPI::UpdateBearing(QString info)
 
 void UDPMulticastAPI::UpdatePre(QString info)
 {
+//    qDebug()<<"info = " << info;
     QStringList templist = info.split(";");
     QString wagon = templist.at(0);
     if(wagon != APPSetting::WagonNumber){
         return;
     }
-    if(templist.size() != 22){
+    if(templist.size() != 23){
         HMIError(0x14);
         return;
     }
@@ -808,9 +841,9 @@ void UDPMulticastAPI::UpdatePre(QString info)
         //        M_DataBaseAPI::AddDeviceInfo(templist.at(2).toInt(),templist.at(3).toInt(),templist.at(4),templist.at(5),templist.at(6).toFloat(),templist.at(7).toFloat(),
         //                                     templist.at(8),templist.at(9),templist.at(10),templist.at(11),templist.at(12),templist.at(13),templist.at(14),templist.at(15),
         //                                     templist.at(16),templist.at(17).toInt(),templist.at(18),templist.at(19).toInt(),templist.at(20),templist.at(21).toInt());
-        Q_EMIT UDPAddDevice(templist.at(2).toInt(),templist.at(3).toInt(),templist.at(4),templist.at(5),templist.at(6).toFloat(),templist.at(7).toFloat(),
-                            templist.at(8),templist.at(9),templist.at(10),templist.at(11),templist.at(12),templist.at(13),templist.at(14),templist.at(15),
-                            templist.at(16),templist.at(17).toInt(),templist.at(18),templist.at(19).toInt(),templist.at(20),templist.at(21).toInt());
+        Q_EMIT UDPAddDevice(templist.at(2).toInt(),templist.at(3).toInt(),templist.at(4),templist.at(5),templist.at(6).toFloat(),templist.at(7).toInt(),templist.at(8).toFloat(),
+                            templist.at(9),templist.at(10),templist.at(11),templist.at(12),templist.at(13),templist.at(14),templist.at(15),templist.at(16),
+                            templist.at(17),templist.at(18).toInt(),templist.at(19),templist.at(20).toInt(),templist.at(21),templist.at(22).toInt());
         break;
     case 0x01://修改
     {
@@ -819,31 +852,32 @@ void UDPMulticastAPI::UpdatePre(QString info)
         QString deviceName = templist.at(4);
         QString deviceType = templist.at(5);
         float deviceSensitivity = templist.at(6).toFloat();
-        float shaftDiameter = templist.at(7).toFloat();
-        QString bearing1Name = templist.at(8);
-        QString bearing1Model = templist.at(9);
-        QString bearing2Name = templist.at(10);
-        QString bearing2Model = templist.at(11);
-        QString bearing3Name = templist.at(12);
-        QString bearing3Model = templist.at(13);
-        QString bearing4Name = templist.at(14);
-        QString bearing4Model = templist.at(15);
-        QString capstanName = templist.at(16);
-        int capstanTeethNum = templist.at(17).toInt();
-        QString drivenwheelName = templist.at(18);
-        int drivenwheelTeethNum = templist.at(19).toInt();
-        QString version = templist.at(20);
-        bool isEnabled = templist.at(21).toInt() == 1;
+        int AxisPosition = templist.at(7).toInt();
+        float shaftDiameter = templist.at(8).toFloat();
+        QString bearing1Name = templist.at(9);
+        QString bearing1Model = templist.at(10);
+        QString bearing2Name = templist.at(11);
+        QString bearing2Model = templist.at(12);
+        QString bearing3Name = templist.at(13);
+        QString bearing3Model = templist.at(14);
+        QString bearing4Name = templist.at(15);
+        QString bearing4Model = templist.at(16);
+        QString capstanName = templist.at(17);
+        int capstanTeethNum = templist.at(18).toInt();
+        QString drivenwheelName = templist.at(19);
+        int drivenwheelTeethNum = templist.at(20).toInt();
+        QString version = templist.at(21);
+        bool isEnabled = templist.at(22).toInt() == 1;
 #if 1
         QString updateSql = QString("UPDATE DeviceInfo SET "
-                                    "DeviceName = '%1', DeviceType = '%2', DeviceSensitivity = '%3', "
-                                    "ShaftDiameter = '%4', bearing1Name = '%5', bearing1_model = '%6', "
-                                    "bearing2Name = '%7', bearing2_model = '%8', bearing3Name = '%9', "
-                                    "bearing3_model = '%10', bearing4Name = '%11', bearing4_model = '%12', "
-                                    "capstanName = '%13', capstanTeethNum = '%14', "
-                                    "DrivenwheelName = '%15', DrivenwheelTeethNum = '%16', "
-                                    "version = '%17', IsEnable = '%18' "
-                                    "WHERE DeviceID = '%19' AND DeviceCH = '%20'").arg(deviceName).arg(deviceType).arg(deviceSensitivity).arg(shaftDiameter)
+                                    "DeviceName = '%1', DeviceType = '%2', DeviceSensitivity = '%3', AxisPosition = '%4'"
+                                    "ShaftDiameter = '%5', bearing1Name = '%6', bearing1_model = '%7', "
+                                    "bearing2Name = '%8', bearing2_model = '%9', bearing3Name = '%10', "
+                                    "bearing3_model = '%11', bearing4Name = '%12', bearing4_model = '%13', "
+                                    "capstanName = '%14', capstanTeethNum = '%15', "
+                                    "DrivenwheelName = '%16', DrivenwheelTeethNum = '%17', "
+                                    "version = '%18', IsEnable = '%19' "
+                                    "WHERE DeviceID = '%20' AND DeviceCH = '%21'").arg(deviceName).arg(deviceType).arg(deviceSensitivity).arg(AxisPosition).arg(shaftDiameter)
                 .arg(bearing1Name).arg(bearing1Model).arg(bearing2Name).arg(bearing2Model).arg(bearing3Name).arg(bearing3Model).arg(bearing4Name)
                 .arg(bearing4Model).arg(capstanName).arg(capstanTeethNum).arg(drivenwheelName).arg(drivenwheelTeethNum).arg(version).arg(isEnabled)
                 .arg(deviceId).arg(deviceCh);
@@ -1513,12 +1547,13 @@ void UDPMulticastAPI::HMIError(uint8_t error_order, QString Content)
     senddata(array);
 }
 
-void UDPMulticastAPI::PreStateChange(uint8_t id, uint8_t ch, DBData::DeviceState state)
+void UDPMulticastAPI::PreStateChange(uint8_t id, uint8_t ch,  QString name, quint8 axis, DBData::DeviceState state)
 {
     QStringList list;
     list.append(APPSetting::WagonNumber);
     list.append("前置");
-    list.append(QString("%1|%2").arg(id).arg(ch));
+    list.append(QString("%1|%2|%3").arg(id).arg(ch).arg(axis));
+    list.append(name);
     list.append(QString::number(state));
     if(state == DBData::DeviceState_Offline){
         list.append("设备离线");
@@ -1547,14 +1582,16 @@ void UDPMulticastAPI::OtherBoardStateChange(uint8_t id, DBData::DeviceState stat
     }else if(state == DBData::DeviceState_Online){
         statestr = "上线";
     }
-    QString content = QString("背板设备(canid：%1,name: %2) %3").arg(id).arg(devicename).arg(statestr);
+//    QString content = QString("背板设备(canid：%1,name: %2) %3").arg(id).arg(devicename).arg(statestr);
+    QString content = QString("背板设备(canid：%1)%2").arg(id).arg(statestr);
     QStringList list;
     list.append(APPSetting::WagonNumber);
     list.append("OtherBoard");
     list.append(QString("%1").arg(id));
+    list.append(devicename);
     list.append(QString::number(state));
+    list.append(content);
     list.append(DATETIME);
-    list.append("content");
     SendBoardStatus(list.join(";"));
 }
 

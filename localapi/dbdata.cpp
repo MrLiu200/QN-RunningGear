@@ -23,6 +23,7 @@ QList<int> DBData::DeviceInfo_DeviceCH = QList<int>();
 QList<QString> DBData::DeviceInfo_DeviceName = QList<QString>();
 QList<QString> DBData::DeviceInfo_DeviceType = QList<QString>();
 QList<float> DBData::DeviceInfo_Sensitivity = QList<float>();
+QList<int> DBData::DeviceInfo_AxisPosition = QList<int>();
 QList<float> DBData::DeviceInfo_ShaftDiameter = QList<float>();
 QList<QString> DBData::DeviceInfo_bearing1Name = QList<QString>();
 QList<QString> DBData::DeviceInfo_bearing1_model = QList<QString>();
