@@ -636,15 +636,12 @@ void UDPMulticastAPI::UpdateBoardStatus(QString DataContent)
     }else{
         id = strid.toInt();
     }
-//    QString newContent = oldContent + QString("状态: %1").arg(state);
-
     Q_EMIT UDPAddLog(APPSetting::CarNumber,wagon,id,ch,axis,devicename,"报警信息",0,Time,oldContent);
-    //    M_DataBaseAPI::addLog(APPSetting::CarNumber,wagon,id,ch,type,"报警信息",0,Time,Content);
 }
 
 void UDPMulticastAPI::UpdateSoftware(QString info)
 {
-//    qDebug()<<"UDPMulticastAPI::UpdateSoftware";
+
     QStringList templist = info.split(";");
     QString wagon = templist.at(0);
     if((wagon != APPSetting::WagonNumber) && (wagon != "AllDevice")){
