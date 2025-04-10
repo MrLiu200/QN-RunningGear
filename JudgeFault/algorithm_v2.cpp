@@ -166,13 +166,11 @@ QStringList Algorithm_v2::Algoruthm_Start(QVector<float> OriginalData, QVector<f
             }
             ntypecount[ntype] = ntcount;
 //            qDebug()<< "ntype =  " << ntype  << "ntcount = " << ntypecount[ntype];
-#if 1
+#if 0
             bool saveok = false;
             if(((ntype+2) == FaultType.FaultOther.DaChiLun) && (ntypecount[ntype] >= 50)){
-//                qDebug()<< "DaChiLun : "<< ntypecount[ntype];
                 saveok = true;
             }else if(((ntype+2) == FaultType.FaultOther.XiaoChiLun) && (ntypecount[ntype] >= 28)){
-//                qDebug()<< "XiaoChiLun : "<< ntypecount[ntype];
                 saveok = true;
             }
             if(saveok){
@@ -338,12 +336,21 @@ QStringList Algorithm_v2::Algoruthm_Start(QVector<float> OriginalData, QVector<f
         }else if(finalvalue > 0){
             db_result = 0;
         }
-//        qDebug()<< "other_Secondary = " << other_Secondary[ntype];
+#if 0
+//2025-04-10 取消使用算法内二级判断，改为纯DB值判断，方便调试
         if((other_Secondary[ntype]) || (db_result == 2)){//如果二级结果数组或者DB的值大于2级限定值
              if(APPSetting::UseVibrateSecondaryAlarm){
                  result = 2;
              }
-        }else if((FaultResult_other[ntype+2]) && (db_result == 1)){//再判断1级报警
+        }
+#else
+        if((FaultResult_other[ntype+2]) && (db_result == 2)){//如果齿轮啮合频率具有离散型且db超出二级阈值，则判定为1级报警
+            if(APPSetting::UseVibrateSecondaryAlarm){
+                result = 2;
+            }
+        }
+#endif
+        else if((FaultResult_other[ntype+2]) && (db_result == 1)){//如果齿轮啮合频率具有离散型且db为1，则判定为1级报警
              if(APPSetting::UseVibrateFirstLevelAlarm){
                  result = 1;
              }
