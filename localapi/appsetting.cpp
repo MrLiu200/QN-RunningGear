@@ -4,7 +4,7 @@
 bool APPSetting::IsHardDiskReady = false;
 QString APPSetting::dbfile = "RunningGear.db";
 QString APPSetting::configFile = "config.ini";
-QString APPSetting::version = "1.0.0";
+QString APPSetting::version = "1.0.1";
 #ifndef DEVICE_SLAVE
 QString APPSetting::WagonType = "Host";
 #else

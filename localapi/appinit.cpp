@@ -59,7 +59,7 @@ void APPInit::start()
     //主机才会挂载外部硬盘
     APPSetting::IsHardDiskReady = CoreHelper::ExternalStorageInit();
 #endif
-    qDebug()<<"APPSetting::IsHardDiskReady = " << APPSetting::IsHardDiskReady;
+//    qDebug()<<"APPSetting::IsHardDiskReady = " << APPSetting::IsHardDiskReady;
     /*******初始化外部存储设备 end*******/
 
 

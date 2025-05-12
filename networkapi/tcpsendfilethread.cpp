@@ -250,7 +250,6 @@ void TcpSendFileThread::SendFile()
             }
         }
 #endif
-        //        qDebug()<<"Send complete"<< DATETIMES;
 //        qDebug()<< "connect state" <<Socket->state() << SocketStandby->state();
 //        NeedSend = false;
         sendsuccess = true;
