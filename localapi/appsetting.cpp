@@ -13,7 +13,7 @@ QString APPSetting::WagonType = "Slave";
 QString APPSetting::projectName = "KM4";
 
 int APPSetting::LineNumber = 0;
-QString APPSetting::CarNumber = "T1214";
+QString APPSetting::CarNumber = "T35";
 QString APPSetting::WagonNumber = "QN-t0021";
 double APPSetting::WheelDiameter = 0.82;
 double APPSetting::SpeedCoefficient = 1.00;

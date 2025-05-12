@@ -59,7 +59,7 @@ void APPInit::start()
     //主机才会挂载外部硬盘
     APPSetting::IsHardDiskReady = CoreHelper::ExternalStorageInit();
 #endif
-    //    qDebug()<<"APPSetting::IsHardDiskReady = " << APPSetting::IsHardDiskReady;
+    qDebug()<<"APPSetting::IsHardDiskReady = " << APPSetting::IsHardDiskReady;
     /*******初始化外部存储设备 end*******/
 
 
@@ -111,7 +111,7 @@ void APPInit::start()
 #ifndef DEVICE_SLAVE
     //获取当前日期，与要打包的日期做对比
     QDate olddate = QDate::fromString(APPSetting::PackagingDate, "yyyy-MM-dd");
-    if(olddate.isValid()){//判断日期有效
+    if(olddate.isValid() && APPSetting::IsHardDiskReady){//判断日期有效
         QDate today = QDate::currentDate();
         if(olddate < today){
             qDebug()<<"开启日志打包线程";
@@ -168,8 +168,12 @@ void APPInit::start()
 
     /*******TCP初始化 start*******/
 #ifndef DEVICE_SLAVE
-    if(TcpReceiveFileThread::Instance()->startListen()){
-        M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,"运行日志",DATETIME,"Tcp 监听成功");
+    if(APPSetting::IsHardDiskReady){
+        if(TcpReceiveFileThread::Instance()->startListen()){
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,"运行日志",DATETIME,"Tcp 监听成功");
+        }else{
+            M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,"运行日志",DATETIME,"Tcp 监听失败");
+        }
     }
 #endif
     TcpSendFileThread *tcpsendfilethread = new TcpSendFileThread;

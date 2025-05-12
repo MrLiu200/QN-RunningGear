@@ -282,7 +282,7 @@ bool CoreHelper::ExternalStorageInit()
             IsMount = false;
             return IsMount;
         }
-
+#if 1
         //检查是否已经挂载，若挂载目录非指定目录，需要卸载
         if(!mountDir.isEmpty()){
             if(mountDir != "/udisk"){
@@ -293,6 +293,17 @@ bool CoreHelper::ExternalStorageInit()
                 }
             }
         }
+#else
+        //chat gpt
+        QProcess cmdProc;
+        cmdProc.start("umount", QStringList() << mountDir);
+        cmdProc.waitForFinished();
+        if (cmdProc.exitCode() != 0) {
+            qDebug() << "umount failed:" << cmdProc.readAllStandardError();
+            IsMount = false;
+            return IsMount;
+        }
+#endif
         QString deviceName = QString("/dev/%1").arg(device);
         QFileInfo checkFile(deviceName);
         QString CmdProgram = "ntfs-3g";
@@ -320,6 +331,8 @@ bool CoreHelper::ExternalStorageInit()
                 IsMount = true;
             }
         }
+    }else{
+        IsMount = false;
     }
     return IsMount;
 }

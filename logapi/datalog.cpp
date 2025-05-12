@@ -244,6 +244,8 @@ void DataLog::AddData(QString filename, QByteArray data)
     if(!APPSetting::IsHardDiskReady) return;
 #endif
     if(!CanSave) return;
+    int proportion = CoreHelper::Getcapacity("/");
+    if(proportion > 60) return;//本地最多存储60%
 //    qDebug()<<"AddData len = " << data.size();
     QString name = QString("%1/%2").arg(RunDataPath).arg(filename);
     QFile file;

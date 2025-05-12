@@ -3,14 +3,16 @@
 #include "appsetting.h"
 #include <dbdata.h>
 #include "datalog.h"
+#include <QElapsedTimer>
 TcpSendFileThread::TcpSendFileThread(QObject *parent) : QThread(parent)
 {
     InitParameter();
     timeSendVibData = new QTimer(this);
     timeSendVibData->setInterval(APPSetting::TcpSendFileInterval);
-    timeSendVibData->start();
+//    timeSendVibData->start();
     connect(this,SIGNAL(error(QString)),this,SLOT(SendError(QString)));
     connect(timeSendVibData,SIGNAL(timeout()),this,SLOT(FindSendFile()));
+
 }
 
 void TcpSendFileThread::run()
@@ -20,7 +22,9 @@ void TcpSendFileThread::run()
     SocketStandby = new QTcpSocket;
 #endif
     while(!stopped){
+        FindSendFile();
         SendFile();
+
     }
     stopped = false;
 }
@@ -69,15 +73,22 @@ void TcpSendFileThread::FindSendFile()
         return;
     }
 
-    for(int i=0;i<count;i++){
-        QString name = DBData::TcpSendList.at(i);
-        if(!name.isEmpty()){
-            Filename = name;
-            DBData::TCPDeleteSendFile(i);
-            NeedSend = true;
-            break;
-        }
+    QString name = DBData::TcpSendList.first();
+    if(!name.isEmpty()){
+        Filename = name;
+        DBData::TCPDeleteSendFile(0);
+        NeedSend = true;
     }
+
+//    for(int i=0;i<count;i++){
+//        QString name = DBData::TcpSendList.at(i);
+//        if(!name.isEmpty()){
+//            Filename = name;
+//            DBData::TCPDeleteSendFile(i);
+//            NeedSend = true;
+//            break;
+//        }
+//    }
 }
 
 void TcpSendFileThread::disConnect()
@@ -91,6 +102,8 @@ void TcpSendFileThread::disConnect()
 void TcpSendFileThread::SendFile()
 {
     if(!NeedSend) return;
+//    QElapsedTimer elapsedtimer;
+//    elapsedtimer.start();
     QFile file(Filename);
     qint64 fileSize = file.size();
     bool sendsuccess = false;
@@ -110,12 +123,12 @@ void TcpSendFileThread::SendFile()
     //连接不存在则建立连接,连接服务器,等待1秒钟
     if (Socket->state() !=  QAbstractSocket::ConnectedState) {
         Socket->connectToHost(ServerIp, ServerPort);
-        ok = Socket->waitForConnected(-1);
+        ok = Socket->waitForConnected(500);
     }
 #ifdef DEVICE_SLAVE
     if (SocketStandby->state() !=  QAbstractSocket::ConnectedState) {
         SocketStandby->connectToHost(ServerIpStandby, ServerPortStandby);
-        ok1 = SocketStandby->waitForConnected(-1);
+        ok1 = SocketStandby->waitForConnected(500);
     }
 #endif
     if ((ok || ok1)) {
@@ -139,7 +152,7 @@ void TcpSendFileThread::SendFile()
         if(ok){
             Socket->write((char *)&size, sizeof(qint64));
             Socket->write(block.data(), size);
-            if (!Socket->waitForBytesWritten(-1)) {
+            if (!Socket->waitForBytesWritten(500)) {
                 Socket->disconnectFromHost();
                 ok = false;
             }
@@ -149,7 +162,7 @@ void TcpSendFileThread::SendFile()
             SocketStandby->write((char *)&size, sizeof(qint64));
             SocketStandby->write(block.data(), size);
 
-            if (!SocketStandby->waitForBytesWritten(-1)) {
+            if (!SocketStandby->waitForBytesWritten(500)) {
                 SocketStandby->disconnectFromHost();
                 ok1 = false;
             }
@@ -165,7 +178,7 @@ void TcpSendFileThread::SendFile()
             Socket->write((char *)&size, sizeof(qint64));
             Socket->write(block.data(), size);
 
-            if (!Socket->waitForBytesWritten(-1)) {
+            if (!Socket->waitForBytesWritten(500)) {
                 Socket->disconnectFromHost();
                 ok = false;
             }
@@ -175,7 +188,7 @@ void TcpSendFileThread::SendFile()
             SocketStandby->write((char *)&size, sizeof(qint64));
             SocketStandby->write(block.data(), size);
 
-            if (!SocketStandby->waitForBytesWritten(-1)) {
+            if (!SocketStandby->waitForBytesWritten(500)) {
                 SocketStandby->disconnectFromHost();
                 ok1 = false;
             }
@@ -193,7 +206,7 @@ void TcpSendFileThread::SendFile()
             if(ok){
                 Socket->write((char *)&size, sizeof(qint64));
                 Socket->write(block.data(), size);
-                if (!Socket->waitForBytesWritten(-1)) {
+                if (!Socket->waitForBytesWritten(500)) {
                     Socket->disconnectFromHost();
                     ok = false;
                 }
@@ -203,7 +216,7 @@ void TcpSendFileThread::SendFile()
                 SocketStandby->write((char *)&size, sizeof(qint64));
                 SocketStandby->write(block.data(), size);
 
-                if (!SocketStandby->waitForBytesWritten(-1)) {
+                if (!SocketStandby->waitForBytesWritten(500)) {
                     SocketStandby->disconnectFromHost();
                     ok1 = false;
                 }
@@ -222,7 +235,7 @@ void TcpSendFileThread::SendFile()
         if(ok){
             Socket->write((char *)&size, sizeof(qint64));
             Socket->write(block.data(), size);
-            if (!Socket->waitForBytesWritten(-1)) {
+            if (!Socket->waitForBytesWritten(500)) {
                 Socket->disconnectFromHost();
                 ok = false;
             }
@@ -231,7 +244,7 @@ void TcpSendFileThread::SendFile()
         if(ok1){
             SocketStandby->write((char *)&size, sizeof(qint64));
             SocketStandby->write(block.data(), size);
-            if (!SocketStandby->waitForBytesWritten(-1)) {
+            if (!SocketStandby->waitForBytesWritten(500)) {
                 SocketStandby->disconnectFromHost();
                 ok1 = false;
             }
@@ -247,10 +260,14 @@ void TcpSendFileThread::SendFile()
     file.close();
 
     if(sendsuccess){
-        NeedSend = false;
 #ifdef DEVICE_SLAVE
        file.remove();
+//       qDebug()<<"remove file :" << Filename;
 #endif
+       NeedSend = false;
+//       qint64 elapsed = elapsedtimer.elapsed();
+//       qDebug() << "Elapsed time: " << elapsed << "ms";
+//       elapsedtimer.start();
     }
 }
 
