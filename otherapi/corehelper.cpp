@@ -21,13 +21,13 @@ QString CoreHelper::APPPath()
 QString CoreHelper::byteArrayToHexStr(const QByteArray &data)
 {
     QString temp = "";
-        QString hex = data.toHex();
+    QString hex = data.toHex();
 
-        for (int i = 0; i < hex.length(); i = i + 2) {
-            temp += hex.mid(i, 2) + " ";
-        }
+    for (int i = 0; i < hex.length(); i = i + 2) {
+        temp += hex.mid(i, 2) + " ";
+    }
 
-        return temp.trimmed().toUpper();
+    return temp.trimmed().toUpper();
 }
 
 void CoreHelper::newDir(const QString &dirName)
@@ -198,7 +198,7 @@ QVector<float> CoreHelper::CalculateDimension(QVector<float> data)
     float rectified_mean = abs_vec.mean();
 
     // 计算偏斜度
-//    double skewness = (vec.array() - mean).pow(3).mean() / pow(std_deviation, 3);
+    //    double skewness = (vec.array() - mean).pow(3).mean() / pow(std_deviation, 3);
 
     // 计算峭度
     float kurtosis = (vec.array() - mean).pow(4).mean() / pow(variance, 2);
@@ -220,7 +220,7 @@ QVector<float> CoreHelper::CalculateDimension(QVector<float> data)
     float root_mean = square_mean * square_mean;
     float margin_factor = peak_to_peak / root_mean;
     //峭度因子
-//    double kurtosis_factor = vec.array().pow(4).sum()/sqrt(vec.array().pow(2).sum());
+    //    double kurtosis_factor = vec.array().pow(4).sum()/sqrt(vec.array().pow(2).sum());
 
     Qvret.append(max_value);
     Qvret.append(min_value);
@@ -241,6 +241,114 @@ QVector<float> CoreHelper::CalculateDimension(QVector<float> data)
 
 bool CoreHelper::ExternalStorageInit()
 {
+    /*
+ * 0、先找盘符，找到盘符后再往下进行，如果识别不到盘符则直接返回false
+ * 1、先判断硬盘是否已经挂载，若已经挂载，则判断是否挂载到/udisk，若不是则卸载后重新挂载，若是则返回true
+ * 2、若硬盘未挂载，则寻找是否存在/udisk目录，若不存在则创建，存在则判断该目录下是否有文件，有的话采用递归删除
+ * 3、判断硬盘的格式，为硬盘找出对应的挂载命令。
+ * 4、进行挂载，等待挂载结果并返回true或false
+*/
+
+    bool IsMount = true;
+    QString targetPathStr = "/udisk";
+    QDir mediaDir(targetPathStr);
+    //1、find External hard drive device
+    QString command = "lsblk -b -o NAME,SIZE,FSTYPE,MOUNTPOINT /dev/sda"; // 获取 /dev/sda 下的所有设备、大小和文件系统类型
+    QProcess process;
+    process.start(command);
+    process.waitForFinished(-1);
+
+    QByteArray output = process.readAllStandardOutput();
+    QString outputString = QString::fromLatin1(output);
+    QStringList lines = outputString.split('\n');
+
+    /*遍历结果找出空间最大的盘符*/
+    QString device,fsType,mountDir;
+    qlonglong size = 0;
+    for (const QString &line : lines) {
+        QStringList fields = line.trimmed().split(QRegExp("\\s+"));
+        if (fields.length() >= 3){
+            qlonglong temp = fields[1].toLongLong();
+            if(temp > size){
+                device = fields[0];
+                size = fields[1].toLongLong();
+                fsType = fields[2];
+                if(fields.length() == 4)
+                    mountDir = fields[3];
+            }
+        }
+    }//找到了空间最大的盘符
+
+    //提取盘符名称有效信息
+    QRegularExpression pattern("sda\\d+");
+    QRegularExpressionMatch match = pattern.match(device);
+
+    // 检查是否有匹配
+    if (match.hasMatch()) {
+        device = match.captured(0);
+    }else{
+        IsMount = false;
+        return IsMount;
+    }
+
+    //检查是否已经挂载，若挂载目录非指定目录，需要卸载
+    if(!mountDir.isEmpty()){
+        if(mountDir != targetPathStr){
+            QProcess cmdProc;
+            cmdProc.start("umount", QStringList() << mountDir);
+            cmdProc.waitForFinished();
+            if (cmdProc.exitCode() != 0) {
+                qDebug() << "umount failed:" << cmdProc.readAllStandardError();
+                IsMount = false;
+                return IsMount;
+            }
+        }else{
+            IsMount = true;
+            return IsMount;
+        }
+    }
+
+    if (!mediaDir.exists()) {
+        if (!QDir().mkdir(targetPathStr)) {
+            qWarning() << "无法创建 /udisk 目录";
+            return false;
+        }
+    }else{
+        deleteDirectory(targetPathStr);
+    }
+
+    // 根据文件系统选择挂载方式
+    QString deviceName = QString("/dev/%1").arg(device);
+    QFileInfo checkFile(deviceName);
+    QString CmdProgram = "ntfs-3g";
+    if(checkFile.exists()){
+        //依据不同的文件系统进行挂载
+        if(fsType == "ntfs"){
+            CmdProgram = "ntfs-3g";
+        }else if(fsType == "vfat"){
+            CmdProgram = "mount";
+        }else if(fsType == "exfat"){
+            //需要先格式化，目前只能格式化为ext4或者vfat，暂时无法支持 ntfs
+            int ret = process.execute("mkfs.vfat", QStringList() << deviceName);
+            if(ret != 0){
+                qWarning() << "格式化失败";
+                return false;
+            }
+            CmdProgram = "mount";
+        }else{
+//            CmdProgram = "mount";
+            qWarning() << "不支持的文件系统:" << fsType;
+                    return false;
+        }
+        int out = process.execute(CmdProgram, QStringList() << deviceName << targetPathStr);
+        if(out == 0){
+            IsMount = true;
+        }else{
+            IsMount = false;
+        }
+    }
+    return IsMount;
+#if 0
     bool IsMount = true;
     QDir mediaDir("/udisk");
     QStringList entryList = mediaDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
@@ -332,9 +440,11 @@ bool CoreHelper::ExternalStorageInit()
             }
         }
     }else{
+        qDebug()<<"/udisk 下不为空";
         IsMount = false;
     }
     return IsMount;
+#endif
 }
 
 quint32 CoreHelper::GetrCRC32_MPEG_2(QString fileName)
@@ -481,16 +591,16 @@ quint8 CoreHelper::CheckSum(const QByteArray array, int Start, int end)
 double CoreHelper::DS18B20ByteToTemperature(uint8_t High, uint8_t Low)
 {
     //高位的高5个字节表示符号，若都为1则表示为负数，都为0表示为正数
-        uint8_t flag = High >> 3;
-        double ret = 0.0000;
-        uint16_t temp = (High<<8) | Low;
-        if(flag == 31){//负数，按位取反后+1
-            temp = ~temp + 1;
-            ret = -0.0625 * temp;
-        }else if(flag == 0){//正数
-            ret = temp * 0.0625;
-        }
-        return ret ;
+    uint8_t flag = High >> 3;
+    double ret = 0.0000;
+    uint16_t temp = (High<<8) | Low;
+    if(flag == 31){//负数，按位取反后+1
+        temp = ~temp + 1;
+        ret = -0.0625 * temp;
+    }else if(flag == 0){//正数
+        ret = temp * 0.0625;
+    }
+    return ret ;
 }
 
 double CoreHelper::M117ByteToTemperature(uint8_t High, uint8_t Low)
@@ -560,13 +670,13 @@ void CoreHelper::SetLedState(QString name, uint8_t state)
 {
     if(name.isEmpty() || state > 1) return;
     QString filename = QString("/sys/class/leds/%1/brightness").arg(name);
-//    qDebug()<<"setLedState: filename = " << filename;
+    //    qDebug()<<"setLedState: filename = " << filename;
 
     QFile file(filename);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            qDebug() << "Failed to open file:" << filename;
-            return;
-        }
+        qDebug() << "Failed to open file:" << filename;
+        return;
+    }
 
     QTextStream out(&file);
     out << state;  // 将数值写入文件
@@ -577,13 +687,13 @@ void CoreHelper::SetLedState(QString name, uint8_t state)
 void CoreHelper::SetNetWorkConfig(QString ip, QString gateway, QString dns, QString ethName)
 {
     QString basename;
-   if(ethName == "eth0"){
-       basename = "10-eth.network";
-   }else if(ethName == "eth1"){
-       basename = "15-eth.network";
-   }else{
-       return;
-   }
+    if(ethName == "eth0"){
+        basename = "10-eth.network";
+    }else if(ethName == "eth1"){
+        basename = "15-eth.network";
+    }else{
+        return;
+    }
     QStringList list;
     list << QString("[Match]\n");
     list << QString("Name=%1\n").arg(ethName);

@@ -140,6 +140,10 @@ void DataLog::SetPreviousPath(QString Path)
 
 bool DataLog::ParameterInit()
 {
+/*
+ * 1、如果是主机，则需要根据外部硬盘是否已挂载决定是否可以存储，若未挂载则不存储
+ * 2、如果是从机，则直接检查文件夹是否存在，不存在则创建。
+*/
     CanSave = true;
 #ifndef DEVICE_SLAVE
     if(!APPSetting::IsHardDiskReady){
@@ -244,9 +248,13 @@ void DataLog::AddData(QString filename, QByteArray data)
     if(!APPSetting::IsHardDiskReady) return;
 #endif
     if(!CanSave) return;
-    int proportion = CoreHelper::Getcapacity("/");
-    if(proportion > 50) return;//本地最多存储50%
-//    qDebug()<<"AddData len = " << data.size();
+    //临时文件最多存储50个，否则开启循环存储
+    if(DBData::TcpGetSendFileListSize() >= 50){
+        QString zerofile = DBData::TcpSendList.first();
+        QFile::remove(zerofile);
+        DBData::TCPDeleteSendFile(0);
+    }
+
     QString name = QString("%1/%2").arg(RunDataPath).arg(filename);
     QFile file;
     file.setFileName(name);

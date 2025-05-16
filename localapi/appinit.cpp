@@ -59,13 +59,13 @@ void APPInit::start()
     //主机才会挂载外部硬盘
     APPSetting::IsHardDiskReady = CoreHelper::ExternalStorageInit();
 #endif
-//    qDebug()<<"APPSetting::IsHardDiskReady = " << APPSetting::IsHardDiskReady;
+    qDebug()<<"APPSetting::IsHardDiskReady = " << APPSetting::IsHardDiskReady;
     /*******初始化外部存储设备 end*******/
 
 
 
     /*******初始化数据库 start*******/
-    //数据库是否要放在硬盘内，这是个思考的问题
+    //数据库是否要放在硬盘内，这是个思考的问题，暂时不放在硬盘，如果放在硬盘会无法继续运行
     APPSetting::dbfile = CoreHelper::APPPath() + "/RunningGear.db";
     QFile dbFile(APPSetting::dbfile);
     if (!dbFile.exists() || dbFile.size() == 0) {
@@ -85,11 +85,10 @@ void APPInit::start()
         M_DataBaseAPI::LoadBearingInfo();
         M_DataBaseAPI::LoadLinkDeviceInfo();
         M_DataBaseAPI::LoadTask();
-        //新增发送配置文件至主机
+        //新增发送配置文件至主机 命名规则：config_项目名称_车号_车厢号.csv
         QString configname = CoreHelper::APPPath() + "/config/config_" + APPSetting::projectName + "_" + APPSetting::CarNumber + "_" + APPSetting::WagonNumber + ".csv";
-//        QString configname = CoreHelper::APPPath() + "/config/config_"  + APPSetting::CarNumber + "_" + APPSetting::WagonNumber + ".csv";
         if(M_DataBaseAPI::saveDeviceInfoToFile(configname)){
-            DBData::TcpSendList.append(configname);
+            DBData::TCPAddSendFile(configname);
             qDebug()<<"create new config csv success";
         }else{
             qDebug()<<"create new config csv fail";

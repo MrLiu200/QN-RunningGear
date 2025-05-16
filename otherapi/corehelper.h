@@ -116,6 +116,7 @@ public:
     //设置IP
     static void SetNetWorkConfig(QString ip, QString gateway, QString dns, QString ethName);
 
+
 signals:
 
 };

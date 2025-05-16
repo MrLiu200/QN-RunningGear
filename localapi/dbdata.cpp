@@ -120,6 +120,12 @@ void DBData::TCPDeleteSendFile(int index)
 #endif
 }
 
+int DBData::TcpGetSendFileListSize()
+{
+    QMutexLocker lock(&mutex);
+    return TcpSendList.size();
+}
+
 
 QList<QString> DBData::LinkDeviceInfo_Type = QList<QString>();
 QList<QString> DBData::LinkDeviceInfo_IP = QList<QString>();

@@ -91,6 +91,8 @@ public:
     static void TCPAddSendFile(QString filename);
     //链表删除内容
     static void TCPDeleteSendFile(int index);
+    //获取链表长度
+    static int TcpGetSendFileListSize(void);
 
     //关联设备列表
     static QList<QString> LinkDeviceInfo_Type;              //关联设备类型
