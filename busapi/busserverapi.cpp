@@ -453,7 +453,8 @@ void BusServerAPI::SelfInspection(PRE_SELF_INSPECTION *preselfinspection)
     for (int i = 0; i < preselfinspection->CH_Count; i++) {
         str.append(QString::number(preselfinspection->CH_Status.at(i)) + ";");
     }
-    str.append(QString::number(preselfinspection->version));
+//    str.append(QString::number(preselfinspection->version));
+    str.append(preselfinspection->version);
     M_DataBaseAPI::addLog(APPSetting::CarNumber,APPSetting::WagonNumber,"自检信息",DATETIME,str);
 
     //发送至UDP
@@ -477,7 +478,8 @@ void BusServerAPI::SelfInspection(PRE_SELF_INSPECTION *preselfinspection)
             QString oldversion = DBData::DeviceInfo_version.at(index);
             if(oldversion != preselfinspection->version){//如果不一致，则更新版本号
                 quint8 ch = DBData::DeviceInfo_DeviceCH.at(index);
-                M_DataBaseAPI::UpdateVersion(preselfinspection->id,ch,QString("v%1").arg(preselfinspection->version));
+                M_DataBaseAPI::UpdateVersion(preselfinspection->id,ch,preselfinspection->version);
+//                M_DataBaseAPI::UpdateVersion(preselfinspection->id,ch,QString("v%1").arg(preselfinspection->version));
             }
         }
     }

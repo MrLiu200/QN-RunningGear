@@ -30,7 +30,7 @@ typedef struct PRE_SELF_INSPECTION{//自检信息结构体
     uint8_t PreStatus;                              //前置处理器状态
     uint8_t CH_Count;                               //通道数量
     QVector<uint8_t> CH_Status;                     //通道状态(因通道可增加，这里做成可调整的长度)
-    uint16_t version;                               //软件版本
+    QString version;                               //软件版本
 }PRE_SELF_INSPECTION;
 
 typedef struct PRE_TEM_VALUE{//温度信息结构体

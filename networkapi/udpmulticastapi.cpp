@@ -302,6 +302,9 @@ void UDPMulticastAPI::CheckData(const QByteArray data)
             case 0x89://读取软件版本
                 GetAppVersion(DataContent);
                 break;
+            case 0x8A://获取所有板卡状态
+                GetAllBoardState(DataContent);
+                break;
             default:
                 break;
             }
@@ -1529,6 +1532,86 @@ void UDPMulticastAPI::GetAppVersion(QString info)
     QString str = list.join(";");
     QByteArray array = GetPackage(0x89,str);
     senddata(array);
+}
+
+void UDPMulticastAPI::GetAllBoardState(QString info)
+{
+    //判断车厢号，若不是本车厢则不处理
+    if(info != APPSetting::WagonNumber){
+        return;
+    }
+/*
+ * 车厢号;各板卡状态
+各板卡状态：
+1、	通信板卡状态: COMM|板卡ID|是否在线|自检状态|软件版本;
+2、	前置IO板卡状态：IO|板卡ID|是否在线|自检状态|软件版本;
+3、	转速板卡状态：SPEED|板卡ID|是否在线|自检状态|软件版本;
+4、	计算板卡状态:COMPUTE|板卡ID|是否在线|软件版本;
+5、	网络连接状态：NETWORK|网卡0连接状态|网卡1连接状态;
+6、	指示灯状态：LED|运行指示灯状态|前置指示灯状态|一级报警灯状态|二级报警灯状态|PIS指示灯状态;
+其中指示灯的状态分为：闪烁、亮、灭；
+*/
+    QStringList list;
+    list.append(APPSetting::WagonNumber);
+    //判断背板是否存在其他板卡
+    for(int i=0;i<DBData::OtherBoardStatus.size();i++){
+        QStringList info = DBData::OtherBoardStatus.at(i).split("|");
+        QStringList StateList;
+        uint8_t id = info.at(0).toInt();
+        if(id == SPEEDBOARDID){
+            StateList.append("SPEED");
+        }else if(id == COMMUNICATIONBOARDID){
+            StateList.append("COMM");
+        }else if(id == PREIOBOARDID){
+            StateList.append("IO");
+        }else{
+            continue;
+        }
+
+        QString state = info.at(1);
+        QByteArray versionarr = Bus2API::Instance()->GetVersionMap(id);
+        QByteArray statearr = Bus2API::Instance()->GetStateMap(id);
+        StateList.append(QString::number(id));
+        StateList.append(state);
+        StateList.append(QString(statearr));
+        StateList.append(QString(versionarr));
+        list.append(StateList.join("|"));
+    }
+    //计算板卡状态
+    QStringList computeList;
+    computeList.append("COMPUTE");
+    computeList.append("0");
+    computeList.append("在线");
+    computeList.append(APPSetting::version);
+    list.append(computeList.join("|"));
+
+    //网络连接状态
+    bool PISState = Bus2API::Instance()->ReadPISIsConnect();
+    QString netstate = QString("NETWORK|已连接|%1").arg(PISState == true? "已连接" : "未连接");
+    list.append(netstate);
+
+    //指示灯状态
+    QStringList ledlist;
+    ledlist.append("LED");
+    ledlist.append("闪烁");
+    QString prestate = DBData::PreIsAlarm ? "亮" : "灭";
+    ledlist.append(prestate);
+    QString onealarm = "灭";
+    QString twoalarm = "灭";
+    if(DBData::CurrentAlarmLevel == 2){
+        twoalarm = "亮";
+    }else if(DBData::CurrentAlarmLevel == 1){
+        onealarm = "亮";
+    }
+    ledlist.append(onealarm);
+    ledlist.append(twoalarm);
+    ledlist.append(PISState == true ? "亮" : "灭");
+    list.append(ledlist.join("|"));
+
+    QString str = list.join(";");
+    QByteArray array = GetPackage(0x8A,str);
+    senddata(array);
+
 }
 
 void UDPMulticastAPI::HMIError(uint8_t error_order, QString Content)

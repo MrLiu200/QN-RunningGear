@@ -288,6 +288,7 @@ bool CoreHelper::ExternalStorageInit()
         device = match.captured(0);
     }else{
         IsMount = false;
+        qDebug()<<"outputString : " << outputString;
         return IsMount;
     }
 

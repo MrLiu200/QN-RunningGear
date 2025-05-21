@@ -347,7 +347,8 @@ void Bus1API::checkData(QByteArray frameData, quint32 frameID)
                         UpdateDeviceState(frameID,i-4,true);
                     }
                 }
-                self_inspection.version = TOUINT16(frame[len-3],frame[len-2]);
+//                self_inspection.version = TOUINT16(frame[len-3],frame[len-2]);
+                self_inspection.version = QString("v%1.%2").arg(frame[len-3]).arg(frame[len-2]);
                 addTaskprelist(frameID,frame[PRE_PACKET_DATA_OFFSET + 1],self_inspection.CH_Status);
 //                UpdateDeviceState(frameID,0);
                 Q_EMIT SelfInspection(&self_inspection);

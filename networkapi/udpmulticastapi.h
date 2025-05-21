@@ -190,6 +190,9 @@ private:
     //获取软件版本
     void GetAppVersion(QString info);
 
+    //获取所有板卡状态
+    void GetAllBoardState(QString info);
+
     //错误命令
     void HMIError(uint8_t error_order,QString Content = QString());
 

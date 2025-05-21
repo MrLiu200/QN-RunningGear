@@ -169,7 +169,9 @@ void Bus2API::checkData(QByteArray frameData, quint32 frameID)
         {
             uint8_t state = frame[3];
             SetStateMap(frameID,state);
-            uint16_t version = ((frame[4] << 8) | frame[5]);
+            //2025-05-21修改，版本号为vx.y，通信协议中高字节为x，低字节为y
+            QString version = QString("v%1.%2").arg(frame[4]).arg(frame[5]);
+//            uint16_t version = ((frame[4] << 8) | frame[5]);
             SetVersionMap(frameID,version);
         }
             break;
@@ -236,8 +238,13 @@ void Bus2API::checkData(QByteArray frameData, quint32 frameID)
 #endif
         case CommandByte_Version://软件版本
         {
+#if 0
             uint32_t version = ((frame[3] << 24) | (frame[4] << 16) | (frame[5] << 8) | frame[6]);
             SetVersionMap(frameID,version);
+#else
+            QString version = QString("v%1.%2").arg(frame[4]).arg(frame[5]);
+            SetVersionMap(frameID,version);
+#endif
             Q_EMIT VersionReturn(frameID,version);
         }
             break;
@@ -550,10 +557,11 @@ QByteArray Bus2API::GetVersionMap(uint8_t key)
     return arr;
 }
 
-void Bus2API::SetVersionMap(uint8_t key, uint16_t value)
+//void Bus2API::SetVersionMap(uint8_t key, uint16_t value)
+void Bus2API::SetVersionMap(uint8_t key, QString version)
 {
     if(VersionMap.contains(key)){
-        VersionMap.insert(key,QString::number(value));
+        VersionMap.insert(key,version);
     }
 }
 
@@ -639,4 +647,13 @@ void Bus2API::SetPISLedState(uint8_t state)
     frame.setBitrateSwitch(false);
 //    qDebug()<<"SetPISLedState : " << state;
     SendData(frame);
+}
+
+bool Bus2API::ReadPISIsConnect()
+{
+    if(PISState == "up"){
+        return true;
+    }else{
+        return false;
+    }
 }

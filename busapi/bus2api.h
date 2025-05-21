@@ -90,7 +90,8 @@ public:
     //获取软件版本
     QByteArray GetVersionMap(uint8_t key = 0xFF);
     //更新板卡版本
-    void SetVersionMap(uint8_t key, uint16_t value);
+//    void SetVersionMap(uint8_t key, uint16_t value);
+    void SetVersionMap(uint8_t key, QString version);
     //获取板卡自检状态
     QByteArray GetStateMap(uint8_t key = 0xFF);
     //更新板卡自检状态
@@ -101,8 +102,10 @@ public:
     void SetPreIOPowerState(bool state);
     //设置PIS网口指示灯
     void SetPISLedState(uint8_t state);
+    //PIS网卡是否已连接
+    bool ReadPISIsConnect(void);
 signals:
-    void VersionReturn(uint8_t id, uint32_t value);
+    void VersionReturn(uint8_t id, QString version);
     void UpdateReturn(uint8_t id, uint8_t state);
     void RebootReturn(uint8_t id, uint8_t state);
 };
