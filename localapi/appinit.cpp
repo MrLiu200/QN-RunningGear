@@ -59,7 +59,7 @@ void APPInit::start()
     //主机才会挂载外部硬盘
     APPSetting::IsHardDiskReady = CoreHelper::ExternalStorageInit();
 #endif
-    qDebug()<<"APPSetting::IsHardDiskReady = " << APPSetting::IsHardDiskReady;
+//    qDebug()<<"APPSetting::IsHardDiskReady = " << APPSetting::IsHardDiskReady;
     /*******初始化外部存储设备 end*******/
 
 
@@ -89,7 +89,7 @@ void APPInit::start()
         QString configname = CoreHelper::APPPath() + "/config/config_" + APPSetting::projectName + "_" + APPSetting::CarNumber + "_" + APPSetting::WagonNumber + ".csv";
         if(M_DataBaseAPI::saveDeviceInfoToFile(configname)){
             DBData::TCPAddSendFile(configname);
-            qDebug()<<"create new config csv success";
+//            qDebug()<<"create new config csv success";
         }else{
             qDebug()<<"create new config csv fail";
         }

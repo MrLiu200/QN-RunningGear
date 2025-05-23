@@ -103,9 +103,12 @@ bool Bus2API::Open()
             IsOpen = false;
         }
     }
+#ifndef DEVICE_SLAVE
     if(IsOpen){
+        GetPISNetState();
         timerPISState->start();
     }
+#endif
     return IsOpen;
 }
 
@@ -387,6 +390,13 @@ void Bus2API::GetPISNetState()
     QByteArray statusData = ETH1FileIndex.readAll().trimmed();
 //    qDebug()<<"eth1 state = " << statusData;
     if(PISState != statusData){
+        //2025-02-22新增加了一个重启UDP功能，还不知道在运行时重启会不会有问题，需要验证
+        if(!PISState.isEmpty()){
+            QTimer::singleShot(1000, [](){
+                UDPMulticastAPI::Instance()->test20250522();
+            });
+
+        }
         PISState = statusData;
         if(statusData == "up"){
             SetPISLedState(1);

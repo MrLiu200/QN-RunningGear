@@ -73,6 +73,10 @@ public:
     //板卡状态发生变化(前置处理器、转速板卡、通信板卡、前置IO板卡等)
     void SendBoardStatus(QString info);
 
+public slots:
+    //临时测试
+    void test20250522(void);
+
 private:
     //发送数据
     void senddata(const QByteArray data);

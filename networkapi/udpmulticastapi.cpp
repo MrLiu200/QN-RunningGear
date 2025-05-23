@@ -103,7 +103,7 @@ void UDPMulticastAPI::run()
 bool UDPMulticastAPI::startJoin()
 {
 #if 0
-     bool ret = udpServer->bind(QHostAddress::AnyIPv4,APPSetting::UDPListenPort,QUdpSocket::ShareAddress|QUdpSocket::ReuseAddressHint);
+    bool ret = udpServer->bind(QHostAddress::AnyIPv4,APPSetting::UDPListenPort,QUdpSocket::ShareAddress|QUdpSocket::ReuseAddressHint);
 #else
     QHostAddress udpIPV4(APPSetting::LocalIP_eth0);
     QNetworkInterface netInterface = QNetworkInterface::interfaceFromName("eth0");
@@ -172,7 +172,7 @@ void UDPMulticastAPI::CheckData(const QByteArray data)
     if(len == 0){
         return;
     }
-//    qDebug()<< "udp Receive " << CoreHelper::byteArrayToHexStr(data);
+    //    qDebug()<< "udp Receive " << CoreHelper::byteArrayToHexStr(data);
     uint8_t frame[len];
 
     for(int i=0; i<len; i++){
@@ -493,14 +493,14 @@ void UDPMulticastAPI::ComprehensiveInspection(QString DataContent)
     Contents << "温度" << "保外" << "保内" << "外环" << "内环" << "滚单" << "大齿轮" << "小齿轮" << "踏面";
     for(int i=0;i<9;i++){
         if(state[i] != 0xff){//0:预警，1:一级报警 2:二级报警
-//            QString name = WagonNum + "测点";
+            //            QString name = WagonNum + "测点";
             //            M_DataBaseAPI::addLog(APPSetting::CarNumber,WagonNum,pre_id,ChannelNum,name,"报警信息",state[i]-1,time,Contents.at(i) + "异常");
             QString grade = (state[i] == 0 ? "预警" : QString("%1级").arg(state[i]));
             logList.append(Contents.at(i) + grade);
             if(lastgrade < state[i]){
                 lastgrade = state[i];
             }
-//            Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,ChannelNum,axis,name,"报警信息",state[i],time,Contents.at(i) + "异常");
+            //            Q_EMIT UDPAddLog(APPSetting::CarNumber,WagonNum,pre_id,ChannelNum,axis,name,"报警信息",state[i],time,Contents.at(i) + "异常");
         }
     }
 
@@ -616,6 +616,27 @@ void UDPMulticastAPI::SendBoardStatus(QString info)
 {
     QByteArray array = GetPackage(0x08,info);
     senddata(array);
+}
+
+void UDPMulticastAPI::test20250522()
+{
+    if (udpServer->state() == QAbstractSocket::BoundState) {
+        IsOpen = false;
+        udpServer->leaveMulticastGroup(m_ip);
+        udpServer->abort();
+        QHostAddress udpIPV4(APPSetting::LocalIP_eth0);
+        QNetworkInterface netInterface = QNetworkInterface::interfaceFromName("eth0");
+        bool ret = udpServer->bind(QHostAddress::AnyIPv4,APPSetting::UDPListenPort,QUdpSocket::ShareAddress|QUdpSocket::ReuseAddressHint);
+        if(ret){
+            udpServer->setMulticastInterface(netInterface);
+            ret = udpServer->joinMulticastGroup(m_ip,netInterface);
+            if(ret){
+                udpServer->setSocketOption(QAbstractSocket::MulticastLoopbackOption, 0);
+                IsOpen = true;
+                qDebug()<<"已重启UDP";
+            }
+        }
+    }
 }
 
 void UDPMulticastAPI::UpdateBoardStatus(QString DataContent)
@@ -758,7 +779,7 @@ void UDPMulticastAPI::DeviceReboot(QString info)
     if((info != APPSetting::WagonNumber) && (info != "AllDevice")){
         return;
     }
-//    CoreHelper::Reboot();
+    //    CoreHelper::Reboot();
     Q_EMIT UDPReboot();
 }
 
@@ -824,7 +845,7 @@ void UDPMulticastAPI::UpdateBearing(QString info)
 
 void UDPMulticastAPI::UpdatePre(QString info)
 {
-//    qDebug()<<"info = " << info;
+    //    qDebug()<<"info = " << info;
     QStringList templist = info.split(";");
     QString wagon = templist.at(0);
     if(wagon != APPSetting::WagonNumber){
@@ -1540,7 +1561,7 @@ void UDPMulticastAPI::GetAllBoardState(QString info)
     if(info != APPSetting::WagonNumber){
         return;
     }
-/*
+    /*
  * 车厢号;各板卡状态
 各板卡状态：
 1、	通信板卡状态: COMM|板卡ID|是否在线|自检状态|软件版本;
@@ -1594,7 +1615,7 @@ void UDPMulticastAPI::GetAllBoardState(QString info)
     QStringList ledlist;
     ledlist.append("LED");
     ledlist.append("闪烁");
-    QString prestate = DBData::PreIsAlarm ? "亮" : "灭";
+    QString prestate = DBData::PreIsAlarm ? "灭" : "亮";
     ledlist.append(prestate);
     QString onealarm = "灭";
     QString twoalarm = "灭";
@@ -1662,7 +1683,7 @@ void UDPMulticastAPI::OtherBoardStateChange(uint8_t id, DBData::DeviceState stat
     }else if(state == DBData::DeviceState_Online){
         statestr = "上线";
     }
-//    QString content = QString("背板设备(canid：%1,name: %2) %3").arg(id).arg(devicename).arg(statestr);
+    //    QString content = QString("背板设备(canid：%1,name: %2) %3").arg(id).arg(devicename).arg(statestr);
     QString content = QString("背板设备(canid：%1)%2").arg(id).arg(statestr);
     QStringList list;
     list.append(APPSetting::WagonNumber);
